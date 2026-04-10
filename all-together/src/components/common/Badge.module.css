@@ -1,0 +1,19 @@
+.temp, .tier, .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+/* status variants */
+.recruiting { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary-border); }
+.completed  { background: #E6F1FB; color: #0C447C; border-color: #85B7EB; }
+.closed     { background: #F1EFE8; color: #5F5E5A; border-color: #D3D1C7; }
+.pending    { background: var(--color-amber-light); color: #633806; border-color: #FAC775; }
+.approved   { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary-border); }
+.rejected   { background: var(--color-danger-light); color: #791F1F; border-color: #F09595; }
+.cancelled  { background: #F1EFE8; color: #5F5E5A; border-color: #D3D1C7; }

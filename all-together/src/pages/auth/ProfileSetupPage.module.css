@@ -1,0 +1,90 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: var(--color-bg);
+}
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+}
+.logoRow { margin-bottom: 2rem; }
+.logo { font-size: 18px; font-weight: 700; }
+.logo span { color: var(--color-primary); }
+
+.stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.stepItem { display: flex; align-items: center; }
+.stepCircle {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-secondary); flex-shrink: 0;
+}
+.stepCircle.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.stepCircle.done { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary-border); }
+.stepLabel { font-size: 11px; color: var(--color-text-secondary); margin: 0 6px; white-space: nowrap; }
+.activeLabel { color: var(--color-primary); font-weight: 600; }
+.stepLine { flex: 1; height: 1px; width: 30px; background: var(--color-border); }
+.lineDone { background: var(--color-primary-border); }
+
+.section h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; position: relative; }
+.field label { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+.field input, .field textarea {
+  padding: 10px 12px; font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none; transition: border-color 0.15s;
+  background: var(--color-surface); color: var(--color-text-primary);
+  resize: none;
+}
+.field input:focus, .field textarea:focus { border-color: var(--color-primary); }
+.count { font-size: 11px; color: var(--color-text-hint); text-align: right; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.roleGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.roleBtn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 13px; color: var(--color-text-secondary);
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.roleBtn:hover { border-color: var(--color-primary-border); }
+.roleSel {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+
+.tagGroup { margin-bottom: 1.25rem; }
+.tagGroupLabel { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; font-weight: 500; }
+.tagWrap { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag {
+  padding: 5px 12px; border-radius: var(--radius-full); font-size: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text-secondary);
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.tagTech.tagSel { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary-border); }
+.tagInterest.tagSelPurple { background: var(--color-purple-light); color: var(--color-purple); border-color: var(--color-purple-border); }
+
+.btnRow { display: flex; gap: 10px; margin-top: 1.5rem; }

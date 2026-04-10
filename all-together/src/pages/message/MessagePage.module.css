@@ -1,0 +1,33 @@
+.page { padding-top: 0.5rem; }
+.heading { font-size: 22px; font-weight: 700; margin-bottom: 1.5rem; }
+.layout { display: grid; grid-template-columns: 320px 1fr; gap: 1rem; height: calc(100vh - 200px); min-height: 500px; }
+@media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+
+.listPanel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+.tabs { display: flex; border-bottom: 1px solid var(--color-border); }
+.tab { flex: 1; padding: 12px; font-size: 13px; font-weight: 500; background: none; border: none; cursor: pointer; font-family: inherit; color: var(--color-text-secondary); border-bottom: 2px solid transparent; transition: color 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.badge { background: var(--color-danger); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: var(--radius-full); }
+
+.list { flex: 1; overflow-y: auto; }
+.msgItem { width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--color-border-light); background: none; border-left: none; border-right: none; border-top: none; cursor: pointer; font-family: inherit; text-align: left; transition: background 0.15s; position: relative; }
+.msgItem:hover { background: var(--color-bg); }
+.msgSelected { background: var(--color-primary-light) !important; }
+.unread { background: #f0fdf8; }
+.msgAvatar { width: 36px; height: 36px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.msgInfo { flex: 1; min-width: 0; }
+.msgTop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.msgFrom { font-size: 13px; font-weight: 600; }
+.msgDate { font-size: 11px; color: var(--color-text-secondary); }
+.msgPreview { font-size: 12px; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary); flex-shrink: 0; margin-top: 4px; }
+
+.contentPanel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+.msgContent { padding: 1.5rem; height: 100%; }
+.msgHeader { display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-border-light); }
+.msgAvatarLg { width: 44px; height: 44px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.msgFromLg { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.msgDateLg { font-size: 12px; color: var(--color-text-secondary); }
+.systemBadge { margin-left: auto; font-size: 11px; background: var(--color-bg); color: var(--color-text-secondary); padding: 3px 8px; border-radius: var(--radius-full); border: 1px solid var(--color-border); }
+.msgBody { font-size: 14px; line-height: 1.8; color: var(--color-text-primary); white-space: pre-wrap; }
+.empty { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 14px; color: var(--color-text-secondary); }

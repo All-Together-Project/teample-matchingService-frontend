@@ -1,0 +1,35 @@
+.form { display: flex; flex-direction: column; gap: 1rem; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+.field:last-child { margin-bottom: 0; }
+.field label { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+.field input,
+.field textarea,
+.field select {
+  padding: 10px 12px; font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  outline: none; transition: border-color 0.15s;
+  font-family: inherit; resize: vertical;
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus { border-color: var(--color-primary); }
+
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .row3 { grid-template-columns: 1fr; } }
+
+.hint { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
+.tagWrap { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.actions { display: flex; justify-content: flex-end; gap: 10px; }

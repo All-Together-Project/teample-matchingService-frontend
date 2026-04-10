@@ -1,0 +1,69 @@
+/* AuthPage.module.css — LoginPage & SignupPage 공용 */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: var(--color-bg);
+}
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+}
+.logo {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 1.75rem;
+  color: var(--color-text-primary);
+}
+.logo span { color: var(--color-primary); }
+
+.title { font-size: 22px; font-weight: 700; margin-bottom: 1.75rem; }
+
+.form { display: flex; flex-direction: column; gap: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+.field label { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+.field input {
+  padding: 10px 12px; font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none; transition: border-color 0.15s;
+  background: var(--color-surface); color: var(--color-text-primary);
+}
+.field input:focus { border-color: var(--color-primary); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.checkRow {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 13px; color: var(--color-text-secondary);
+  margin-bottom: 1rem; cursor: pointer;
+}
+.checkRow input { margin-top: 2px; accent-color: var(--color-primary); }
+.checkRow a { color: var(--color-primary); }
+
+.err { font-size: 12px; color: var(--color-danger); }
+.errBox {
+  background: var(--color-danger-light);
+  color: #791F1F;
+  border: 1px solid #F09595;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 1rem;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.footer a { color: var(--color-primary); font-weight: 500; }

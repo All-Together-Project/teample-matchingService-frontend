@@ -1,0 +1,19 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+.sm { padding: 3px 9px; font-size: 11px; }
+.md { padding: 5px 12px; font-size: 12px; }
+
+.clickable { cursor: pointer; transition: opacity 0.15s; }
+.clickable:hover { opacity: 0.8; }
+
+.tech { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary-border); }
+.interest { background: var(--color-purple-light); color: var(--color-purple); border-color: var(--color-purple-border); }
+.role { background: var(--color-amber-light); color: #854F0B; border-color: #FAC775; }
+
+.selected { box-shadow: 0 0 0 2px var(--color-primary); }
