@@ -2,13 +2,12 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  height: var(--header-height);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
 .inner {
-  height: 100%;
+  height: var(--header-height);
   display: flex;
   align-items: center;
   gap: 2rem;
@@ -21,21 +20,30 @@
   color: var(--color-text-primary);
   flex-shrink: 0;
 }
-.logo span { color: var(--color-primary); }
 
 .nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 0;
   flex: 1;
 }
-.nav a {
-  font-size: 14px;
+
+.menuItem {
+  position: relative;
+}
+
+.menuLink {
+  display: block;
+  padding: 0 1rem;
+  font-size: 15px;
   color: var(--color-text-secondary);
   font-weight: 500;
+  line-height: var(--header-height);
   transition: color 0.15s;
 }
-.nav a:hover,
-.nav a.active { color: var(--color-text-primary); }
+.menuLink:hover,
+.menuLink.active {
+  color: var(--color-primary);
+}
 
 .actions {
   display: flex;
@@ -76,22 +84,91 @@
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .loginBtn {
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  transition: background 0.15s;
-}
-.loginBtn:hover { background: var(--color-bg); }
-
-.signupBtn {
-  padding: 7px 16px;
-  font-size: 13px;
+  padding: 8px 20px;
+  font-size: 14px;
   font-weight: 600;
   background: var(--color-primary);
   color: #fff;
   border-radius: var(--radius-md);
   transition: background 0.15s;
 }
-.signupBtn:hover { background: var(--color-primary-dark); }
+.loginBtn:hover { background: var(--color-primary-dark); }
+
+/* ── 메가 메뉴 ── */
+.megaMenu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.megaInner {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.megaSubs {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px;
+}
+
+.subItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+.subItem:hover {
+  background: var(--color-primary-light);
+}
+
+.subIcon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.subName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+
+.subDesc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.megaPreview {
+  width: 260px;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+}
+
+.previewTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.previewEmpty {
+  font-size: 13px;
+  color: var(--color-text-hint);
+}

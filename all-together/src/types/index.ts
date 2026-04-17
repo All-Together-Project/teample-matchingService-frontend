@@ -26,6 +26,27 @@ export interface Tag {
 }
 export type TagType = 'TECH' | 'INTEREST' | 'ROLE'
 
+// ─── Category ─────────────────────────────────────────────────────
+export type PostCategory = 'STUDY' | 'PROJECT' | 'MEETUP' | 'COMMUNITY'
+export type PostStatus = 'RECRUITING' | 'COMPLETE' | 'FINISHED' | 'GENERAL'
+
+export interface Post {
+  id: number
+  category: PostCategory
+  subCategory: string
+  title: string
+  content: string
+  capacity?: number
+  currentMemberCount: number
+  status: PostStatus
+  period?: string
+  deadline?: string
+  authorId: string
+  author: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
+  tags: Tag[]
+  createdAt: string
+}
+
 // ─── Project ───────────────────────────────────────────────────────
 export interface Project {
   id: number

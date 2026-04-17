@@ -30,21 +30,21 @@ export default function LoginPage() {
       const { accessToken, refreshToken } = res.data.data
       const meRes = await authApi.me()
       setAuth(meRes.data.data, accessToken, refreshToken)
-      navigate('/projects')
+      navigate('/study')
     } catch (e: any) {
       setError(e.response?.data?.message ?? '이메일 또는 비밀번호를 확인해주세요')
     }
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <Link to="/" className={styles.logo}>ALL<span>투게더</span></Link>
-        <h1 className={styles.title}>로그인</h1>
+    <div className={styles.splitPage}>
+      <div className={styles.splitLeft}>
+        <Link to="/" className={styles.logo}>🤝 AllTogether</Link>
+        <h1 className={styles.splitTitle}>AllTogether!</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
           <div className={styles.field}>
-            <label>이메일</label>
+            <label>아이디</label>
             <input type="email" placeholder="이메일 주소" {...register('email')} />
             {errors.email && <p className={styles.err}>{errors.email.message}</p>}
           </div>
@@ -62,8 +62,13 @@ export default function LoginPage() {
         </form>
 
         <p className={styles.footer}>
-          계정이 없으신가요? <Link to="/signup">회원가입</Link>
+          아직 계정이 없다면? <Link to="/signup">회원가입</Link>
         </p>
+      </div>
+      <div className={styles.splitRight}>
+        <div className={styles.placeholder}>
+          캐릭터 or 로고
+        </div>
       </div>
     </div>
   )

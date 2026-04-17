@@ -7,6 +7,7 @@ import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import SignupPage from '@/pages/auth/SignupPage'
 import ProfileSetupPage from '@/pages/auth/ProfileSetupPage'
+import CategoryPage from '@/pages/CategoryPage'
 import ProjectListPage from '@/pages/project/ProjectListPage'
 import ProjectDetailPage from '@/pages/project/ProjectDetailPage'
 import ProjectCreatePage from '@/pages/project/ProjectCreatePage'
@@ -18,7 +19,6 @@ import MessagePage from '@/pages/message/MessagePage'
 import SearchPage from '@/pages/search/SearchPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
-// 인증 필요 라우트 가드
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
@@ -42,10 +42,16 @@ export default function App() {
             </PrivateRoute>
           }
         >
+          {/* 카테고리 페이지 */}
+          <Route path="/:category" element={<CategoryPage />} />
+
+          {/* 기존 프로젝트 라우트 (하위 호환) */}
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/projects/new" element={<ProjectCreatePage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/projects/:id/edit" element={<ProjectEditPage />} />
+
+          {/* 사용자 */}
           <Route path="/my" element={<MyPage />} />
           <Route path="/users/:id" element={<UserProfilePage />} />
           <Route path="/applications" element={<ApplicationListPage />} />

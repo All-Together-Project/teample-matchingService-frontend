@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 
 :root {
-  --color-primary: #1D9E75;
-  --color-primary-dark: #0F6E56;
-  --color-primary-light: #E1F5EE;
-  --color-primary-border: #9FE1CB;
+  --color-primary: #7C3AED;
+  --color-primary-dark: #5B21B6;
+  --color-primary-light: #EDE9FE;
+  --color-primary-border: #C4B5FD;
 
-  --color-purple: #534AB7;
-  --color-purple-light: #EEEDFE;
-  --color-purple-border: #AFA9EC;
+  --color-green: #1D9E75;
+  --color-green-light: #E1F5EE;
+  --color-green-border: #9FE1CB;
 
   --color-amber: #EF9F27;
   --color-amber-light: #FAEEDA;
