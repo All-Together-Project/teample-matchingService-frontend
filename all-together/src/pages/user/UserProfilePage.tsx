@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { userApi, reviewApi, messageApi } from '@/api'
+import { userApi, reviewApi, messageApi, projectReviewApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 import { TempBadge } from '@/components/common/Badge'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
@@ -30,6 +30,12 @@ export default function UserProfilePage() {
   const { data: reviews } = useQuery({
     queryKey: ['reviews', userId],
     queryFn: () => reviewApi.getUserReviews(userId),
+    enabled: !!userId,
+  })
+
+  const { data: leaderSummary } = useQuery({
+    queryKey: ['leader-summary', userId],
+    queryFn: () => projectReviewApi.getLeaderSummary(userId),
     enabled: !!userId,
   })
 
@@ -66,6 +72,47 @@ export default function UserProfilePage() {
               </div>
             </div>
           </div>
+
+          {leaderSummary && (leaderSummary.hostedCount > 0 || leaderSummary.reviewCount > 0) && (
+            <div className={styles.leaderCard}>
+              <h3 className={styles.leaderTitle}>리더 활동 지표</h3>
+              <div className={styles.leaderStats}>
+                <div className={styles.leaderStat}>
+                  <span className={styles.leaderStatLabel}>운영</span>
+                  <span className={styles.leaderStatValue}>{leaderSummary.hostedCount}</span>
+                </div>
+                <div className={styles.leaderStat}>
+                  <span className={styles.leaderStatLabel}>종료</span>
+                  <span className={styles.leaderStatValue}>{leaderSummary.finishedCount}</span>
+                </div>
+                <div className={styles.leaderStat}>
+                  <span className={styles.leaderStatLabel}>리뷰</span>
+                  <span className={styles.leaderStatValue}>{leaderSummary.reviewCount}</span>
+                </div>
+                <div className={styles.leaderStat}>
+                  <span className={styles.leaderStatLabel}>평점</span>
+                  <span className={styles.leaderStatValue}>
+                    {leaderSummary.reviewCount > 0
+                      ? `★ ${leaderSummary.averageOverall.toFixed(1)}`
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+              {leaderSummary.itemAverages.length > 0 && (
+                <div className={styles.leaderItems}>
+                  {leaderSummary.itemAverages.map(it => (
+                    <div key={it.itemName} className={styles.leaderItemRow}>
+                      <span className={styles.leaderItemLabel}>{it.itemName}</span>
+                      <div className={styles.leaderItemBar}>
+                        <div className={styles.leaderItemFill} style={{ width: `${(it.average / 5) * 100}%` }} />
+                      </div>
+                      <span className={styles.leaderItemValue}>{it.average.toFixed(1)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {summary && <ReviewSummaryCard summary={summary} />}
 

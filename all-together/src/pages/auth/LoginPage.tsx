@@ -30,7 +30,7 @@ export default function LoginPage() {
       const me = await authApi.me()
       if (!me) throw new Error('PROFILE_NOT_FOUND')
       setAuth(me, res.session?.access_token ?? '')
-      navigate('/study')
+      navigate('/')
     } catch (e: any) {
       setError(e.message ?? '이메일 또는 비밀번호를 확인해주세요')
     }

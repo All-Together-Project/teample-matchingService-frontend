@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/ko'
+import { postApi, tagApi, searchApi } from '@/api'
+import type { PostCategory } from '@/types'
+import AdvancedSearchPanel, { type AdvancedFilterValue } from '@/components/search/AdvancedSearchPanel'
 import styles from './LandingPage.module.css'
+
+dayjs.extend(relativeTime)
+dayjs.locale('ko')
 
 const CATEGORIES = [
   { label: '스터디', path: '/study', icon: '📚', desc: '함께 공부할 사람을 찾아보세요', color: '#7C3AED' },
@@ -9,52 +19,105 @@ const CATEGORIES = [
   { label: '커뮤니티', path: '/community', icon: '💬', desc: '자유롭게 소통하고 정보 공유', color: '#D97706' },
 ]
 
-const POPULAR_TAGS = [
-  'React', 'TypeScript', 'Python', 'Spring', '토익', '정처기',
-  '알고리즘', 'AI/ML', '독서', '러닝', 'Figma', 'AWS',
-  '공모전', '사이드프로젝트', '네트워킹',
-]
+const CATEGORY_LABEL: Record<PostCategory, string> = {
+  STUDY: '스터디',
+  PROJECT: '프로젝트',
+  MEETUP: '모임',
+  COMMUNITY: '커뮤니티',
+}
+
+const POPULAR_PER_PAGE = 4
 
 export default function LandingPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [filters, setFilters] = useState<AdvancedFilterValue>({ category: '', status: '', tagIds: [] })
+  const [popularPage, setPopularPage] = useState(0)
   const navigate = useNavigate()
+
+  const buildSearchUrl = (q: string) => {
+    const params = new URLSearchParams()
+    if (q.trim()) params.set('q', q.trim())
+    if (filters.category) params.set('category', filters.category)
+    if (filters.status) params.set('status', filters.status)
+    if (filters.tagIds.length) params.set('tagIds', filters.tagIds.join(','))
+    const qs = params.toString()
+    return qs ? `/search?${qs}` : '/search'
+  }
+
+  const activeFilterCount =
+    (filters.category ? 1 : 0) + (filters.status ? 1 : 0) + filters.tagIds.length
+
+  const { data: popular } = useQuery({
+    queryKey: ['posts', 'popular-by-views'],
+    queryFn: () => postApi.getPopular(8),
+  })
+
+  const { data: latest } = useQuery({
+    queryKey: ['posts', 'latest'],
+    queryFn: () => postApi.getList({ size: 8 }),
+  })
+
+  const { data: tags } = useQuery({
+    queryKey: ['tags', 'all'],
+    queryFn: () => tagApi.getAll(),
+  })
+
+  const { data: trending } = useQuery({
+    queryKey: ['search', 'trending'],
+    queryFn: () => searchApi.getTrending(10),
+    staleTime: 30 * 60 * 1000,        // 30분 동안은 캐시 유효
+    refetchInterval: 30 * 60 * 1000,  // 30분마다 자동 갱신
+  })
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
-    }
+    const q = searchQuery.trim()
+    if (!q && activeFilterCount === 0) return
+    if (q) searchApi.recordSearch(q).catch(() => {})
+    navigate(buildSearchUrl(q))
   }
+
+  const popularPosts = popular ?? []
+  const latestPosts = latest?.content ?? []
+  const popularTags = (tags ?? []).slice(0, 18)
 
   return (
     <div className={styles.page}>
-      <header className={styles.nav}>
-        <span className={styles.logo}>🤝 AllTogether</span>
-        <div className={styles.navActions}>
-          <Link to="/login" className={styles.loginBtn}>로그인</Link>
-          <Link to="/signup" className={styles.signupBtn}>시작하기</Link>
-        </div>
-      </header>
-
-      {/* 히어로 배너 */}
       <section className={styles.hero}>
         <h1>함께할 사람을<br />찾아보세요!</h1>
         <p>스터디, 프로젝트, 모임까지 — 다양한 분야의 팀원을 매칭해드립니다.</p>
-        <form className={styles.searchBar} onSubmit={handleSearch}>
-          <svg className={styles.searchIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            type="text"
-            placeholder="어떤 스터디, 프로젝트, 모임을 찾고 계신가요?"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+        <div className={styles.searchWrap}>
+          <form className={styles.searchBar} onSubmit={handleSearch}>
+            <svg className={styles.searchIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="어떤 스터디, 프로젝트, 모임을 찾고 계신가요?"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            <button type="submit">검색</button>
+          </form>
+          <AdvancedSearchPanel
+            open={showAdvanced}
+            onClose={() => setShowAdvanced(false)}
+            value={filters}
+            onChange={setFilters}
           />
-          <button type="submit">검색</button>
-        </form>
+        </div>
+        <button
+          type="button"
+          className={`${styles.advancedToggle} ${showAdvanced ? styles.advancedToggleActive : ''}`}
+          onClick={() => setShowAdvanced(s => !s)}
+        >
+          상세 검색
+          {activeFilterCount > 0 && <span className={styles.advancedBadge}>{activeFilterCount}</span>}
+          <span className={styles.advancedCaret}>{showAdvanced ? '▲' : '▼'}</span>
+        </button>
       </section>
 
-      {/* 빠른 카테고리 */}
       <section className={styles.categories}>
         <h2 className={styles.sectionTitle}>빠른 카테고리</h2>
         <div className={styles.categoryGrid}>
@@ -68,53 +131,100 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 인기 게시글 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>인기 게시글</h2>
-        <div className={styles.popularScroll}>
-          {[
-            { id: 1, title: '정처기 실기 스터디 모집', category: '스터디', status: '모집중', members: '3/5' },
-            { id: 2, title: 'React 사이드 프로젝트', category: '프로젝트', status: '모집중', members: '2/4' },
-            { id: 3, title: '주말 러닝 크루', category: '모임', status: '모집중', members: '8/15' },
-            { id: 4, title: 'AI 논문 리딩 모임', category: '스터디', status: '모집중', members: '4/6' },
-            { id: 5, title: '공모전 팀원 구합니다', category: '프로젝트', status: '모집중', members: '1/3' },
-          ].map(post => (
-            <div key={post.id} className={styles.popularCard}>
-              <span className={styles.badge}>{post.status}</span>
-              <span className={styles.cardCategory}>{post.category}</span>
-              <h4>{post.title}</h4>
-              <span className={styles.cardMembers}>{post.members}명</span>
-            </div>
-          ))}
-        </div>
+        {popularPosts.length === 0 ? (
+          <div className={styles.empty}>모집 중인 게시글이 없습니다.</div>
+        ) : (() => {
+          const totalPages = Math.min(2, Math.ceil(popularPosts.length / POPULAR_PER_PAGE))
+          const safePage = Math.min(popularPage, totalPages - 1)
+          const start = safePage * POPULAR_PER_PAGE
+          const visible = popularPosts.slice(start, start + POPULAR_PER_PAGE)
+          return (
+            <>
+              <div className={styles.popularGrid}>
+                {visible.map(post => (
+                  <Link to={`/posts/${post.id}`} key={post.id} className={styles.popularCard}>
+                    <span className={styles.badge}>모집중</span>
+                    <span className={styles.cardCategory}>{CATEGORY_LABEL[post.category]}</span>
+                    <h4>{post.title}</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                      {post.capacity != null
+                        ? <span>{post.currentMemberCount}/{post.capacity}명</span>
+                        : <span />}
+                      <span>👁 {(post as any).viewCount ?? 0}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className={styles.popularPager}>
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`${styles.popularPagerBtn} ${i === safePage ? styles.popularPagerActive : ''}`}
+                      onClick={() => setPopularPage(i)}
+                      aria-label={`${i + 1}페이지`}
+                    >{i + 1}</button>
+                  ))}
+                </div>
+              )}
+            </>
+          )
+        })()}
       </section>
 
-      {/* 최신 게시글 + 인기 태그 */}
       <section className={styles.bottomSection}>
         <div className={styles.latestPosts}>
           <h2 className={styles.sectionTitle}>최신 게시글</h2>
           <div className={styles.postList}>
-            {[
-              { id: 1, title: '토익 900+ 목표 스터디', category: '스터디', author: '김지원', time: '방금 전' },
-              { id: 2, title: 'Flutter 앱 개발 팀원 모집', category: '프로젝트', author: '이수연', time: '10분 전' },
-              { id: 3, title: '강남 독서모임 (매주 토)', category: '모임', author: '박민준', time: '30분 전' },
-              { id: 4, title: '백엔드 개발자 구합니다', category: '프로젝트', author: '최하은', time: '1시간 전' },
-              { id: 5, title: 'SQLD 자격증 같이 준비해요', category: '스터디', author: '정서윤', time: '2시간 전' },
-            ].map(post => (
-              <div key={post.id} className={styles.postItem}>
-                <span className={styles.postCategory}>{post.category}</span>
-                <span className={styles.postTitle}>{post.title}</span>
-                <span className={styles.postMeta}>{post.author} · {post.time}</span>
-              </div>
-            ))}
+            {latestPosts.length === 0 ? (
+              <div className={styles.empty}>아직 게시글이 없습니다.</div>
+            ) : (
+              latestPosts.map(post => (
+                <Link to={`/posts/${post.id}`} key={post.id} className={styles.postItem}>
+                  <span className={styles.postCategory}>{CATEGORY_LABEL[post.category]}</span>
+                  <span className={styles.postTitle}>{post.title}</span>
+                  <span className={styles.postMeta}>
+                    {post.author?.nickname ?? '익명'} · {dayjs(post.createdAt).fromNow()}
+                  </span>
+                </Link>
+              ))
+            )}
           </div>
         </div>
         <div className={styles.tagCloud}>
-          <h2 className={styles.sectionTitle}>인기 태그</h2>
+          <h2 className={styles.sectionTitle}>🔥 실시간 검색어</h2>
           <div className={styles.tags}>
-            {POPULAR_TAGS.map(tag => (
-              <span key={tag} className={styles.tag}>{tag}</span>
-            ))}
+            {!trending || trending.length === 0 ? (
+              <span className={styles.empty}>아직 검색 기록이 없습니다.</span>
+            ) : (
+              trending.map((t, i) => (
+                <Link
+                  key={t.term}
+                  to={`/search?q=${encodeURIComponent(t.term)}`}
+                  className={styles.trendingItem}
+                >
+                  <span className={styles.trendingRank}>{i + 1}</span>
+                  <span className={styles.trendingTerm}>{t.term}</span>
+                  <span className={styles.trendingCount}>{t.count}</span>
+                </Link>
+              ))
+            )}
+          </div>
+
+          <h2 className={styles.sectionTitle} style={{ marginTop: '1.5rem' }}>인기 태그</h2>
+          <div className={styles.tags}>
+            {popularTags.length === 0 ? (
+              <span className={styles.empty}>등록된 태그가 없습니다.</span>
+            ) : (
+              popularTags.map(tag => (
+                <Link key={tag.id} to={`/search?q=${encodeURIComponent(tag.name)}`} className={styles.tag}>
+                  {tag.name}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>

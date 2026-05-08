@@ -4,6 +4,28 @@
 .heading { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 .sub { font-size: 14px; color: var(--color-text-secondary); }
 
+.statusTabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.statusTab {
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.12s;
+}
+.statusTab:hover { color: var(--color-text-primary); }
+.statusActive { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
 .filterBar {
   display: flex;
   gap: 8px;
@@ -33,7 +55,24 @@
   border-color: var(--color-primary);
 }
 
+.empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--color-text-hint);
+  font-size: 14px;
+}
+
 .list { display: flex; flex-direction: column; gap: 12px; }
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.subCategory {
+  font-size: 12px;
+  color: var(--color-text-hint);
+}
 
 .postCard {
   background: var(--color-surface);

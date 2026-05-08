@@ -32,4 +32,147 @@
 .hint { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
 .tagWrap { display: flex; flex-wrap: wrap; gap: 7px; }
 
+.customTagForm {
+  display: flex; gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--color-border);
+}
+.customTagForm input {
+  flex: 1;
+  padding: 8px 12px; font-size: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none; font-family: inherit;
+  transition: border-color 0.15s;
+}
+.customTagForm input:focus { border-color: var(--color-primary); }
+
 .actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+.roleList { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+
+.roleRow {
+  display: grid;
+  grid-template-columns: 1fr 90px auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.roleRow input[type="text"], .roleRow input:not([type="number"]) {
+  padding: 9px 12px; font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  outline: none; transition: border-color 0.15s; font-family: inherit;
+}
+.roleRow input[type="number"] {
+  padding: 9px 10px; font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-family: inherit;
+}
+.roleRow input:focus { border-color: var(--color-primary); }
+.unit { font-size: 13px; color: var(--color-text-secondary); }
+
+.roleRowReadonly {
+  display: flex; justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+}
+
+.roleRemove {
+  width: 30px; height: 30px;
+  border: none; background: transparent;
+  font-size: 22px; line-height: 1;
+  color: var(--color-text-hint);
+  cursor: pointer; border-radius: var(--radius-md);
+  transition: background 0.15s, color 0.15s;
+}
+.roleRemove:hover:not(:disabled) {
+  background: #fee2e2; color: #dc2626;
+}
+.roleRemove:disabled {
+  opacity: 0.3; cursor: not-allowed;
+}
+
+.addRole {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.addRole:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* 첨부파일 */
+.fileList {
+  list-style: none; padding: 0; margin: 0 0 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.fileItem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+.filePending {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-border);
+  border-style: dashed;
+}
+.fileIcon { font-size: 14px; flex-shrink: 0; }
+.fileName {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--color-text-primary);
+}
+a.fileName { color: var(--color-primary); text-decoration: none; }
+a.fileName:hover { text-decoration: underline; }
+.fileSize { font-size: 11px; color: var(--color-text-hint); flex-shrink: 0; }
+.fileRemove {
+  width: 26px; height: 26px;
+  border: none; background: transparent;
+  font-size: 18px; line-height: 1;
+  color: var(--color-text-hint);
+  cursor: pointer; border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.fileRemove:hover { background: #fee2e2; color: #dc2626; }
+
+.fileAddBtn {
+  display: inline-block;
+  padding: 9px 14px;
+  font-size: 13px; font-weight: 500;
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.fileAddBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+.fileAddBtnDisabled {
+  opacity: 0.5; cursor: not-allowed;
+  pointer-events: none;
+}

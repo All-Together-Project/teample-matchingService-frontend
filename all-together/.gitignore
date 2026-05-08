@@ -6,11 +6,34 @@ dist
 dist-ssr
 *.tsbuildinfo
 
-# Env (Supabase URL/anon key 등 절대 커밋 금지)
+# Env (Supabase URL/anon key, Gemini key 등 모든 시크릿)
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 *.local
+
+# Supabase CLI 로컬 상태 (project ref, linked metadata)
+supabase/.temp/
+supabase/.branches/
+
+# DB dump / backup
+*.sql.gz
+*.dump
+*.bak
+
+# 데모 시드 SQL (평문 비밀번호/이메일 포함 — 커밋 금지)
+supabase/seed.sql
+supabase/seed_demo_300.sql
+supabase/seed_demo_data.sql
+supabase/seed_demo_users.sql
+
+# 인증서 / 키
+*.pem
+*.key
+*.crt
+*.p12
 
 # Vite/build cache
 .vite
