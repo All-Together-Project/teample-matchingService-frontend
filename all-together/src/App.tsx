@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import MainLayout from '@/components/layout/MainLayout'
 
@@ -13,50 +13,52 @@ import ProjectDetailPage from '@/pages/project/ProjectDetailPage'
 import ProjectCreatePage from '@/pages/project/ProjectCreatePage'
 import ProjectEditPage from '@/pages/project/ProjectEditPage'
 import MyPage from '@/pages/user/MyPage'
+import MyEditPage from '@/pages/user/MyEditPage'
 import UserProfilePage from '@/pages/user/UserProfilePage'
 import ApplicationListPage from '@/pages/matching/ApplicationListPage'
 import MessagePage from '@/pages/message/MessagePage'
 import SearchPage from '@/pages/search/SearchPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
+function PrivateOutlet() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 공개 라우트 */}
-        <Route path="/" element={<LandingPage />} />
+        {/* 인증 페이지 — 헤더 없음 */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signup/profile" element={<ProfileSetupPage />} />
 
-        {/* 인증 필요 라우트 — MainLayout 내부 */}
-        <Route
-          element={
-            <PrivateRoute>
-              <MainLayout />
-            </PrivateRoute>
-          }
-        >
-          {/* 카테고리 페이지 */}
-          <Route path="/:category" element={<CategoryPage />} />
+        {/* 메인 레이아웃 (헤더 공통) */}
+        <Route element={<MainLayout />}>
+          {/* 메인은 비로그인도 접근 가능 */}
+          <Route path="/" element={<LandingPage />} />
 
-          {/* 기존 프로젝트 라우트 (하위 호환) */}
-          <Route path="/projects" element={<ProjectListPage />} />
-          <Route path="/projects/new" element={<ProjectCreatePage />} />
-          <Route path="/projects/:id" element={<ProjectDetailPage />} />
-          <Route path="/projects/:id/edit" element={<ProjectEditPage />} />
+          {/* 인증 필요 라우트 */}
+          <Route element={<PrivateOutlet />}>
+            <Route path="/:category/new" element={<ProjectCreatePage />} />
+            <Route path="/:category" element={<CategoryPage />} />
+            <Route path="/posts/:id" element={<ProjectDetailPage />} />
+            <Route path="/posts/:id/edit" element={<ProjectEditPage />} />
 
-          {/* 사용자 */}
-          <Route path="/my" element={<MyPage />} />
-          <Route path="/users/:id" element={<UserProfilePage />} />
-          <Route path="/applications" element={<ApplicationListPage />} />
-          <Route path="/messages" element={<MessagePage />} />
-          <Route path="/search" element={<SearchPage />} />
+            {/* 하위 호환 — 기존 /projects 경로 유지 */}
+            <Route path="/projects" element={<ProjectListPage />} />
+            <Route path="/projects/:id" element={<ProjectDetailPage />} />
+            <Route path="/projects/:id/edit" element={<ProjectEditPage />} />
+
+            {/* 사용자 */}
+            <Route path="/my" element={<MyPage />} />
+            <Route path="/my/edit" element={<MyEditPage />} />
+            <Route path="/users/:id" element={<UserProfilePage />} />
+            <Route path="/applications" element={<ApplicationListPage />} />
+            <Route path="/messages" element={<MessagePage />} />
+            <Route path="/search" element={<SearchPage />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

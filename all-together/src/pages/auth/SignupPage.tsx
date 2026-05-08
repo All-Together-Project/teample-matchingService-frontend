@@ -9,7 +9,6 @@ import Button from '@/components/common/Button'
 import styles from './AuthPage.module.css'
 
 const schema = z.object({
-  name: z.string().min(2, '이름은 2자 이상 입력해주세요'),
   nickname: z.string().min(2, '닉네임은 2자 이상 입력해주세요'),
   email: z.string().email('올바른 이메일을 입력해주세요'),
   password: z.string().min(8, '8자 이상, 영문+숫자+특수문자 포함').regex(
@@ -36,14 +35,14 @@ export default function SignupPage() {
   const onSubmit = async (data: FormData) => {
     setError('')
     try {
-      await authApi.signup({ name: data.name, nickname: data.nickname, email: data.email, password: data.password })
+      await authApi.signup({ nickname: data.nickname, email: data.email, password: data.password })
       const loginRes = await authApi.login({ email: data.email, password: data.password })
-      const { accessToken, refreshToken } = loginRes.data.data
-      const meRes = await authApi.me()
-      setAuth(meRes.data.data, accessToken, refreshToken)
+      const me = await authApi.me()
+      if (!me) throw new Error('PROFILE_NOT_FOUND')
+      setAuth(me, loginRes.session?.access_token ?? '')
       navigate('/signup/profile')
     } catch (e: any) {
-      setError(e.response?.data?.message ?? '회원가입 중 오류가 발생했습니다')
+      setError(e.message ?? '회원가입 중 오류가 발생했습니다')
     }
   }
 
@@ -54,17 +53,10 @@ export default function SignupPage() {
         <h1 className={styles.title}>회원가입</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-          <div className={styles.row2}>
-            <div className={styles.field}>
-              <label>이름</label>
-              <input placeholder="실명" {...register('name')} />
-              {errors.name && <p className={styles.err}>{errors.name.message}</p>}
-            </div>
-            <div className={styles.field}>
-              <label>닉네임</label>
-              <input placeholder="활동명" {...register('nickname')} />
-              {errors.nickname && <p className={styles.err}>{errors.nickname.message}</p>}
-            </div>
+          <div className={styles.field}>
+            <label>닉네임</label>
+            <input placeholder="활동명" {...register('nickname')} />
+            {errors.nickname && <p className={styles.err}>{errors.nickname.message}</p>}
           </div>
           <div className={styles.field}>
             <label>이메일</label>

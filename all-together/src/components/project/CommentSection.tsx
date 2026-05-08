@@ -6,7 +6,7 @@ import { type Comment } from '@/types'
 import Button from '@/components/common/Button'
 import styles from './CommentSection.module.css'
 
-export default function CommentSection({ projectId }: { projectId: number }) {
+export default function CommentSection({ postId }: { postId: number }) {
   const { user } = useAuthStore()
   const qc = useQueryClient()
   const [text, setText] = useState('')
@@ -14,15 +14,15 @@ export default function CommentSection({ projectId }: { projectId: number }) {
   const [replyText, setReplyText] = useState('')
 
   const { data: comments } = useQuery({
-    queryKey: ['comments', projectId],
-    queryFn: () => commentApi.getList(projectId).then(r => r.data.data),
+    queryKey: ['comments', postId],
+    queryFn: () => commentApi.getList(postId),
   })
 
   const createMutation = useMutation({
     mutationFn: (body: { content: string; parentId?: number }) =>
-      commentApi.create(projectId, body),
+      commentApi.create(postId, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['comments', projectId] })
+      qc.invalidateQueries({ queryKey: ['comments', postId] })
       setText('')
       setReplyTo(null)
       setReplyText('')
@@ -30,8 +30,8 @@ export default function CommentSection({ projectId }: { projectId: number }) {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (commentId: number) => commentApi.delete(projectId, commentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', projectId] }),
+    mutationFn: (commentId: number) => commentApi.delete(commentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', postId] }),
   })
 
   const rootComments = comments?.filter(c => !c.parentId) ?? []
@@ -40,10 +40,9 @@ export default function CommentSection({ projectId }: { projectId: number }) {
     <div className={styles.wrap}>
       <h2>댓글 {comments?.length ?? 0}개</h2>
 
-      {/* 댓글 작성 */}
       {user && (
         <div className={styles.inputRow}>
-          <div className={styles.avatar}>{user.name.charAt(0)}</div>
+          <div className={styles.avatar}>{user.nickname.charAt(0)}</div>
           <div className={styles.inputArea}>
             <textarea
               rows={2}
@@ -65,7 +64,6 @@ export default function CommentSection({ projectId }: { projectId: number }) {
         </div>
       )}
 
-      {/* 댓글 목록 */}
       <div className={styles.list}>
         {rootComments.map(comment => (
           <CommentItem
@@ -91,7 +89,7 @@ function CommentItem({
   onReplyToggle, onReplyTextChange, onReplySubmit, onDelete, isSubmitting,
 }: {
   comment: Comment
-  currentUserId?: number
+  currentUserId?: string
   replyTo: number | null
   replyText: string
   onReplyToggle: (id: number) => void
@@ -102,7 +100,7 @@ function CommentItem({
 }) {
   return (
     <div className={styles.commentItem}>
-      <div className={styles.avatar}>{comment.author.name.charAt(0)}</div>
+      <div className={styles.avatar}>{comment.author.nickname.charAt(0)}</div>
       <div className={styles.commentBody}>
         <div className={styles.commentMeta}>
           <span className={styles.commentAuthor}>{comment.author.nickname}</span>
@@ -122,7 +120,6 @@ function CommentItem({
           )}
         </div>
 
-        {/* 답글 입력 */}
         {replyTo === comment.id && (
           <div className={styles.replyInput}>
             <textarea
@@ -140,10 +137,9 @@ function CommentItem({
           </div>
         )}
 
-        {/* 답글 목록 */}
         {comment.replies?.map(reply => (
           <div key={reply.id} className={styles.replyItem}>
-            <div className={`${styles.avatar} ${styles.avatarSm}`}>{reply.author.name.charAt(0)}</div>
+            <div className={`${styles.avatar} ${styles.avatarSm}`}>{reply.author.nickname.charAt(0)}</div>
             <div className={styles.commentBody}>
               <div className={styles.commentMeta}>
                 <span className={styles.commentAuthor}>{reply.author.nickname}</span>

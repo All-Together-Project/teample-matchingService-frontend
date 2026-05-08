@@ -1,44 +1,119 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { userApi, reviewApi } from '@/api'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/ko'
+import { userApi, reviewApi, postApi, projectReviewApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
-import { TempBadge, TierBadge } from '@/components/common/Badge'
+import { TempBadge, StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
+import Pagination from '@/components/common/Pagination'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import MyApplications from '@/components/matching/MyApplications'
+import ReceivedApplications from '@/components/matching/ReceivedApplications'
+import AIRecommendPanel from '@/components/recommend/AIRecommendPanel'
+import type { Post, Review, ProjectReview } from '@/types'
 import styles from './MyPage.module.css'
+
+dayjs.extend(relativeTime)
+dayjs.locale('ko')
+
+type Tab = 'posts' | 'applications' | 'projects' | 'recommend' | 'reviews'
+type AppSubTab = 'applied' | 'received'
+type ProjectSubTab = 'ongoing' | 'finished'
+type ReviewSubTab = 'personal' | 'leader'
+
+const POSTS_PER_PAGE   = 6
+const PROJECTS_PER_PAGE = 6
+const REVIEWS_PER_PAGE = 8
+
+const CATEGORY_LABEL: Record<string, string> = {
+  STUDY:     '스터디',
+  PROJECT:   '프로젝트',
+  MEETUP:    '모임',
+  COMMUNITY: '커뮤니티',
+}
 
 export default function MyPage() {
   const { user } = useAuthStore()
-  const [tab, setTab] = useState<'profile' | 'reviews'>('profile')
+  const [tab, setTab] = useState<Tab>('posts')
+  const [appSubTab, setAppSubTab] = useState<AppSubTab>('applied')
+  const [projectSubTab, setProjectSubTab] = useState<ProjectSubTab>('ongoing')
+  const [reviewSubTab, setReviewSubTab] = useState<ReviewSubTab>('personal')
+
+  // 페이지 상태 (서브탭 별로 분리)
+  const [postsPage,    setPostsPage]    = useState(0)
+  const [projectPage,  setProjectPage]  = useState(0)
+  const [personalPage, setPersonalPage] = useState(0)
+  const [leaderPage,   setLeaderPage]   = useState(0)
+
+  // 서브탭 변경 시 해당 페이지 리셋
+  useEffect(() => { setProjectPage(0) }, [projectSubTab])
+  useEffect(() => { setPersonalPage(0); setLeaderPage(0) }, [reviewSubTab])
+
+  const { data: profile } = useQuery({
+    queryKey: ['user', user?.id],
+    queryFn: () => userApi.getProfile(user!.id),
+    enabled: !!user,
+  })
+
+  const { data: myPosts } = useQuery({
+    queryKey: ['my-posts'],
+    queryFn: () => postApi.getMyPosts(),
+    enabled: !!user,
+  })
+
+  const { data: memberPosts } = useQuery({
+    queryKey: ['member-posts'],
+    queryFn: () => postApi.getMemberPosts(),
+    enabled: !!user && tab === 'projects',
+  })
 
   const { data: reviewSummary } = useQuery({
     queryKey: ['review-summary', user?.id],
-    queryFn: () => reviewApi.getUserSummary(user!.id).then(r => r.data.data),
+    queryFn: () => reviewApi.getUserSummary(user!.id),
     enabled: !!user,
   })
 
   const { data: reviews } = useQuery({
     queryKey: ['reviews', user?.id],
-    queryFn: () => reviewApi.getUserReviews(user!.id).then(r => r.data.data),
+    queryFn: () => reviewApi.getUserReviews(user!.id),
     enabled: !!user && tab === 'reviews',
   })
 
-  const { data: recommendedProjects } = useQuery({
-    queryKey: ['recommended-projects'],
-    queryFn: () => userApi.getRecommendedProjects().then(r => r.data.data),
+  const { data: leaderSummary } = useQuery({
+    queryKey: ['leader-summary', user?.id],
+    queryFn: () => projectReviewApi.getLeaderSummary(user!.id),
+    enabled: !!user && tab === 'reviews',
+  })
+
+  const { data: leaderReviews } = useQuery({
+    queryKey: ['leader-reviews', user?.id],
+    queryFn: () => projectReviewApi.getLeaderReviews(user!.id),
+    enabled: !!user && tab === 'reviews',
   })
 
   if (!user) return null
 
+  const tags = profile?.tags ?? []
+
+  // 프로젝트 분류
+  const ongoingProjects  = (memberPosts ?? []).filter(p => p.status !== 'FINISHED' && p.category !== 'COMMUNITY')
+  const finishedProjects = (memberPosts ?? []).filter(p => p.status === 'FINISHED' && p.category !== 'COMMUNITY')
+  const projectList      = projectSubTab === 'ongoing' ? ongoingProjects : finishedProjects
+
+  // 페이지 슬라이싱 헬퍼
+  const sliceFor = <T,>(arr: T[], page: number, size: number) =>
+    arr.slice(page * size, (page + 1) * size)
+
   return (
     <div className={styles.page}>
-      {/* 프로필 헤더 */}
       <div className={styles.profileCard}>
         <div className={styles.avatarWrap}>
-          {user.profileImage
-            ? <img src={user.profileImage} className={styles.avatarImg} alt={user.name} />
-            : <div className={styles.avatar}>{user.name.charAt(0)}</div>
+          {user.profileUrl
+            ? <img src={user.profileUrl} className={styles.avatarImg} alt={user.nickname} />
+            : <div className={styles.avatar}>{user.nickname.charAt(0)}</div>
           }
         </div>
         <div className={styles.profileInfo}>
@@ -46,89 +121,370 @@ export default function MyPage() {
             <h1 className={styles.name}>{user.nickname}</h1>
             <div className={styles.badges}>
               <TempBadge value={user.temperature} />
-              <TierBadge tier={user.tier} />
             </div>
           </div>
-          {user.bio && <p className={styles.bio}>{user.bio}</p>}
+          {user.introduction && <p className={styles.bio}>{user.introduction}</p>}
           <div className={styles.subInfo}>
             {user.major && <span>{user.major}</span>}
-            {user.organization && <><span>·</span><span>{user.organization}</span></>}
+            <span>·</span>
+            <span>{user.email}</span>
           </div>
-          <div className={styles.tagRow}>
-            {user.techTags.map(t => <TagChip key={t.id} tag={t} size="sm" />)}
-            {user.interestTags.map(t => <TagChip key={t.id} tag={t} size="sm" />)}
-          </div>
+          {tags.length > 0 && (
+            <div className={styles.tagsRow}>
+              {tags.map(t => <TagChip key={t.id} tag={t} size="sm" />)}
+            </div>
+          )}
         </div>
         <Link to="/my/edit" className={styles.editBtn}>프로필 편집</Link>
       </div>
 
-      {/* 탭 */}
       <div className={styles.tabs}>
-        <button className={`${styles.tab} ${tab === 'profile' ? styles.active : ''}`} onClick={() => setTab('profile')}>
-          AI 추천 프로젝트
+        <button className={`${styles.tab} ${tab === 'posts' ? styles.active : ''}`} onClick={() => setTab('posts')}>
+          모집 공고 {myPosts ? `(${myPosts.length})` : ''}
+        </button>
+        <button className={`${styles.tab} ${tab === 'applications' ? styles.active : ''}`} onClick={() => setTab('applications')}>
+          지원
+        </button>
+        <button className={`${styles.tab} ${tab === 'projects' ? styles.active : ''}`} onClick={() => setTab('projects')}>
+          프로젝트
+        </button>
+        <button className={`${styles.tab} ${tab === 'recommend' ? styles.active : ''}`} onClick={() => setTab('recommend')}>
+          AI 추천
         </button>
         <button className={`${styles.tab} ${tab === 'reviews' ? styles.active : ''}`} onClick={() => setTab('reviews')}>
-          받은 리뷰 {reviewSummary ? `(${reviewSummary.totalReviews})` : ''}
+          리뷰
         </button>
       </div>
 
-      {tab === 'profile' && (
+      {/* ── 모집 공고 ────────────────────────────────────────────── */}
+      {tab === 'posts' && (
         <div className={styles.section}>
-          <p className={styles.sectionHint}>내 관심 태그와 역량 기반으로 AI가 추천하는 프로젝트입니다</p>
-          <div className={styles.projectGrid}>
-            {recommendedProjects?.map(p => (
-              <Link to={`/projects/${p.id}`} key={p.id} className={styles.projectCard}>
-                <span className={styles.projectStatus}>{p.status === 'RECRUITING' ? '모집중' : p.status}</span>
-                <h3 className={styles.projectTitle}>{p.title}</h3>
-                <p className={styles.projectDesc}>{p.description}</p>
-                <div className={styles.projectTags}>
-                  {p.tags.slice(0, 3).map(t => <TagChip key={t.id} tag={t} size="sm" />)}
-                </div>
-              </Link>
-            ))}
-            {!recommendedProjects?.length && (
-              <p className={styles.empty}>태그를 설정하면 맞춤 프로젝트를 추천해드려요!</p>
-            )}
-          </div>
+          {!myPosts ? (
+            <p className={styles.empty}>불러오는 중...</p>
+          ) : myPosts.length === 0 ? (
+            <p className={styles.empty}>아직 작성한 글이 없습니다.</p>
+          ) : (
+            <>
+              <div className={styles.myPostList}>
+                {sliceFor(myPosts, postsPage, POSTS_PER_PAGE).map(p => (
+                  <PostRowCard key={p.id} post={p} />
+                ))}
+              </div>
+              <Pagination
+                page={postsPage}
+                size={POSTS_PER_PAGE}
+                total={myPosts.length}
+                onChange={setPostsPage}
+              />
+            </>
+          )}
         </div>
       )}
 
+      {/* ── 지원 (서브탭) ───────────────────────────────────────── */}
+      {tab === 'applications' && (
+        <div className={styles.section}>
+          <div className={styles.subTabs}>
+            <button
+              className={`${styles.subTab} ${appSubTab === 'applied' ? styles.subActive : ''}`}
+              onClick={() => setAppSubTab('applied')}
+            >
+              내가 지원한
+            </button>
+            <button
+              className={`${styles.subTab} ${appSubTab === 'received' ? styles.subActive : ''}`}
+              onClick={() => setAppSubTab('received')}
+            >
+              받은 지원서
+            </button>
+          </div>
+          {appSubTab === 'applied' ? <MyApplications /> : <ReceivedApplications />}
+        </div>
+      )}
+
+      {/* ── 프로젝트 (서브탭: 참여중 / 종료) ─────────────────────── */}
+      {tab === 'projects' && (
+        <div className={styles.section}>
+          <div className={styles.subTabs}>
+            <button
+              className={`${styles.subTab} ${projectSubTab === 'ongoing' ? styles.subActive : ''}`}
+              onClick={() => setProjectSubTab('ongoing')}
+            >
+              참여중 <span className={styles.subCount}>{ongoingProjects.length}</span>
+            </button>
+            <button
+              className={`${styles.subTab} ${projectSubTab === 'finished' ? styles.subActive : ''}`}
+              onClick={() => setProjectSubTab('finished')}
+            >
+              종료 <span className={styles.subCount}>{finishedProjects.length}</span>
+            </button>
+          </div>
+
+          {projectSubTab === 'finished' && (
+            <p className={styles.sectionHint}>
+              종료된 프로젝트에서는 팀원 리뷰와 프로젝트 리뷰를 작성할 수 있습니다.
+            </p>
+          )}
+
+          {!memberPosts ? (
+            <p className={styles.empty}>불러오는 중...</p>
+          ) : projectList.length === 0 ? (
+            <p className={styles.empty}>
+              {projectSubTab === 'ongoing'
+                ? '참여중인 프로젝트가 없습니다.'
+                : '종료된 프로젝트가 없습니다.'}
+            </p>
+          ) : (
+            <>
+              <div className={styles.myPostList}>
+                {sliceFor(projectList, projectPage, PROJECTS_PER_PAGE).map(p => (
+                  <ProjectRowCard key={p.id} post={p} />
+                ))}
+              </div>
+              <Pagination
+                page={projectPage}
+                size={PROJECTS_PER_PAGE}
+                total={projectList.length}
+                onChange={setProjectPage}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── AI 추천 ─────────────────────────────────────────────── */}
+      {tab === 'recommend' && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            원하는 프로젝트나 팀원의 조건을 자유롭게 입력하면 AI가 추천 결과와 이유를 함께 보여줍니다.
+          </p>
+          <AIRecommendPanel />
+        </div>
+      )}
+
+      {/* ── 리뷰 (서브탭: 받은 개인 / 리더 프로젝트) ───────────── */}
       {tab === 'reviews' && (
         <div className={styles.section}>
-          {reviewSummary && <ReviewSummaryCard summary={reviewSummary} />}
-          <div className={styles.reviewList}>
-            {reviews?.map(r => (
-              <div key={r.id} className={styles.reviewCard}>
-                <div className={styles.reviewHeader}>
-                  <div className={styles.reviewerAvatar}>{r.reviewer.name.charAt(0)}</div>
-                  <div>
-                    <p className={styles.reviewerName}>{r.reviewer.nickname}</p>
-                    <p className={styles.reviewProject}>{r.projectTitle}</p>
+          {/* 지표 카드 — 항상 상단에 노출 (서브탭 무관) */}
+          <div className={styles.metricsRow}>
+            <div className={styles.metricCard}>
+              <span className={styles.metricLabel}>매너 온도</span>
+              <span className={styles.metricValue}>{user.temperature.toFixed(1)}°</span>
+              <span className={styles.metricHint}>받은 개인 리뷰 {reviewSummary?.totalReviews ?? 0}개</span>
+            </div>
+            <div className={styles.metricCard}>
+              <span className={styles.metricLabel}>리더 평점</span>
+              <span className={styles.metricValue}>
+                {leaderSummary && leaderSummary.reviewCount > 0
+                  ? `★ ${leaderSummary.averageOverall.toFixed(1)}`
+                  : '—'}
+              </span>
+              <span className={styles.metricHint}>
+                운영 {leaderSummary?.hostedCount ?? 0}개 · 종료 {leaderSummary?.finishedCount ?? 0}개 · 리뷰 {leaderSummary?.reviewCount ?? 0}개
+              </span>
+            </div>
+          </div>
+
+          {/* 서브탭 */}
+          <div className={styles.subTabs}>
+            <button
+              className={`${styles.subTab} ${reviewSubTab === 'personal' ? styles.subActive : ''}`}
+              onClick={() => setReviewSubTab('personal')}
+            >
+              받은 개인 리뷰 <span className={styles.subCount}>{reviewSummary?.totalReviews ?? 0}</span>
+            </button>
+            <button
+              className={`${styles.subTab} ${reviewSubTab === 'leader' ? styles.subActive : ''}`}
+              onClick={() => setReviewSubTab('leader')}
+            >
+              리더 프로젝트 리뷰 <span className={styles.subCount}>{leaderSummary?.reviewCount ?? 0}</span>
+            </button>
+          </div>
+
+          {/* 받은 개인 리뷰 */}
+          {reviewSubTab === 'personal' && (
+            <>
+              {reviewSummary && reviewSummary.totalReviews > 0 && (
+                <ReviewSummaryCard summary={reviewSummary} />
+              )}
+              {!reviews ? (
+                <p className={styles.empty}>불러오는 중...</p>
+              ) : reviews.length === 0 ? (
+                <p className={styles.empty}>아직 받은 개인 리뷰가 없습니다.</p>
+              ) : (
+                <>
+                  <div className={styles.compactReviewList}>
+                    {sliceFor(reviews, personalPage, REVIEWS_PER_PAGE).map(r => (
+                      <CompactPersonalReviewCard key={r.id} review={r} />
+                    ))}
                   </div>
-                  <span className={styles.reviewDate}>{new Date(r.createdAt).toLocaleDateString('ko-KR')}</span>
-                </div>
-                <div className={styles.scores}>
-                  {[
-                    { label: '전문성', v: r.expertise },
-                    { label: '소통', v: r.communication },
-                    { label: '시간 준수', v: r.punctuality },
-                    { label: '참여도', v: r.participation },
-                    { label: '열정', v: r.passion },
-                  ].map(s => (
-                    <div key={s.label} className={styles.scoreItem}>
-                      <span className={styles.scoreLabel}>{s.label}</span>
+                  <Pagination
+                    page={personalPage}
+                    size={REVIEWS_PER_PAGE}
+                    total={reviews.length}
+                    onChange={setPersonalPage}
+                  />
+                </>
+              )}
+            </>
+          )}
+
+          {/* 리더 프로젝트 리뷰 */}
+          {reviewSubTab === 'leader' && (
+            <>
+              <p className={styles.sectionHint}>
+                내가 운영한 프로젝트에 멤버들이 남긴 리뷰입니다. 새 지원자가 나를 판단할 때 참고합니다.
+              </p>
+
+              {leaderSummary && leaderSummary.itemAverages.length > 0 && (
+                <div className={styles.itemAvgBox}>
+                  {leaderSummary.itemAverages.map(it => (
+                    <div key={it.itemName} className={styles.scoreItem}>
+                      <span className={styles.scoreLabel} style={{ width: 110 }}>{it.itemName}</span>
                       <div className={styles.scoreBar}>
-                        <div className={styles.scoreFill} style={{ width: `${(s.v / 5) * 100}%` }} />
+                        <div className={styles.scoreFill} style={{ width: `${(it.average / 5) * 100}%` }} />
                       </div>
-                      <span className={styles.scoreValue}>{s.v}</span>
+                      <span className={styles.scoreValue}>{it.average.toFixed(1)}</span>
                     </div>
                   ))}
                 </div>
-                {r.comment && <p className={styles.reviewComment}>"{r.comment}"</p>}
-              </div>
-            ))}
-          </div>
+              )}
+
+              {!leaderReviews ? (
+                <p className={styles.empty}>불러오는 중...</p>
+              ) : leaderReviews.length === 0 ? (
+                <p className={styles.empty}>아직 리더 프로젝트 리뷰가 없습니다.</p>
+              ) : (
+                <>
+                  <div className={styles.compactReviewList}>
+                    {sliceFor(leaderReviews, leaderPage, REVIEWS_PER_PAGE).map(r => (
+                      <CompactLeaderReviewCard key={r.id} review={r} />
+                    ))}
+                  </div>
+                  <Pagination
+                    page={leaderPage}
+                    size={REVIEWS_PER_PAGE}
+                    total={leaderReviews.length}
+                    onChange={setLeaderPage}
+                  />
+                </>
+              )}
+            </>
+          )}
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────
+
+function PostRowCard({ post }: { post: Post }) {
+  return (
+    <Link to={`/posts/${post.id}`} className={styles.myPostCard}>
+      <div className={styles.myPostHead}>
+        <StatusBadge status={post.status} />
+        <span className={styles.myPostCategory}>
+          {CATEGORY_LABEL[post.category]} · {post.subCategory}
+        </span>
+        <span className={styles.myPostDate}>{dayjs(post.createdAt).fromNow()}</span>
+      </div>
+      <h3 className={styles.myPostTitle}>{post.title}</h3>
+      {post.capacity != null && (
+        <span className={styles.myPostMembers}>
+          {post.currentMemberCount}/{post.capacity}명
+        </span>
+      )}
+    </Link>
+  )
+}
+
+function ProjectRowCard({ post }: { post: Post }) {
+  return (
+    <Link to={`/posts/${post.id}`} className={styles.myPostCard}>
+      <div className={styles.myPostHead}>
+        <StatusBadge status={post.status} />
+        <span className={styles.myPostCategory}>
+          {CATEGORY_LABEL[post.category]} · {post.subCategory}
+        </span>
+        <span className={styles.myPostDate}>{dayjs(post.createdAt).fromNow()}</span>
+      </div>
+      <h3 className={styles.myPostTitle}>{post.title}</h3>
+      <div className={styles.myPostMeta}>
+        <span>리더 {post.author?.nickname ?? '익명'}</span>
+        {post.capacity != null && (
+          <>
+            <span className={styles.dot}>·</span>
+            <span>{post.currentMemberCount}/{post.capacity}명</span>
+          </>
+        )}
+      </div>
+    </Link>
+  )
+}
+
+function CompactPersonalReviewCard({ review }: { review: Review }) {
+  const avg =
+    review.scores.length > 0
+      ? review.scores.reduce((s, x) => s + x.score, 0) / review.scores.length
+      : 0
+  return (
+    <div className={styles.compactCard}>
+      <div className={styles.compactHead}>
+        <div className={styles.compactAvatar}>{review.evaluator.nickname.charAt(0)}</div>
+        <span className={styles.compactName}>{review.evaluator.nickname}</span>
+        <span className={styles.compactDot}>·</span>
+        <span className={styles.compactProject}>{review.postTitle}</span>
+        <span className={styles.compactStars}>★ {avg.toFixed(1)}</span>
+        <span className={styles.compactDate}>
+          {dayjs(review.createdAt).format('YY.MM.DD')}
+        </span>
+      </div>
+      <div className={styles.compactScoreRow}>
+        {review.scores.map(s => (
+          <span key={s.itemId} className={styles.compactScoreChip}>
+            {s.itemName} <strong>{s.score}</strong>
+          </span>
+        ))}
+      </div>
+      {review.comment && (
+        <p className={styles.compactComment}>"{review.comment}"</p>
+      )}
+    </div>
+  )
+}
+
+function CompactLeaderReviewCard({ review }: { review: ProjectReview }) {
+  const avg =
+    review.scores.length > 0
+      ? review.scores.reduce((s, x) => s + x.score, 0) / review.scores.length
+      : 0
+  return (
+    <div className={styles.compactCard}>
+      <div className={styles.compactHead}>
+        <div className={styles.compactAvatar}>{review.evaluator.nickname.charAt(0)}</div>
+        <span className={styles.compactName}>{review.evaluator.nickname}</span>
+        <span className={styles.compactDot}>·</span>
+        <span className={styles.compactProject}>
+          {review.postCategory ? CATEGORY_LABEL[review.postCategory] + ' · ' : ''}
+          {review.postTitle}
+        </span>
+        <span className={styles.compactStars}>★ {avg.toFixed(1)}</span>
+        <span className={styles.compactDate}>
+          {dayjs(review.createdAt).format('YY.MM.DD')}
+        </span>
+      </div>
+      <div className={styles.compactScoreRow}>
+        {review.scores.map(s => (
+          <span key={s.itemId} className={styles.compactScoreChip}>
+            {s.itemName} <strong>{s.score}</strong>
+          </span>
+        ))}
+      </div>
+      {review.comment && (
+        <p className={styles.compactComment}>"{review.comment}"</p>
       )}
     </div>
   )

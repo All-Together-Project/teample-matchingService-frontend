@@ -1,58 +1,61 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { projectApi, tagApi } from '@/api'
-import { type ProjectStatus } from '@/types'
+import { postApi, tagApi } from '@/api'
+import { type PostStatus } from '@/types'
 import { StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
 import Button from '@/components/common/Button'
 import styles from './ProjectListPage.module.css'
 
-const STATUS_OPTIONS: { value: ProjectStatus | ''; label: string }[] = [
+const STATUS_OPTIONS: { value: PostStatus | ''; label: string }[] = [
   { value: '', label: '전체' },
   { value: 'RECRUITING', label: '모집중' },
-  { value: 'COMPLETED', label: '모집완료' },
-  { value: 'CLOSED', label: '종료' },
+  { value: 'COMPLETE', label: '모집완료' },
+  { value: 'FINISHED', label: '종료' },
 ]
 
 export default function ProjectListPage() {
-  const [status, setStatus] = useState<ProjectStatus | ''>('')
+  const [status, setStatus] = useState<PostStatus | ''>('')
   const [keyword, setKeyword] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [page, setPage] = useState(0)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['projects', { status, keyword, selectedTagIds, page }],
-    queryFn: () => projectApi.getList({
+    queryKey: ['posts', { category: 'PROJECT', status, keyword, selectedTagIds, page }],
+    queryFn: () => postApi.getList({
+      category: 'PROJECT',
       status: status || undefined,
       keyword: keyword || undefined,
       tagIds: selectedTagIds.length ? selectedTagIds : undefined,
       page, size: 12,
-    }).then(r => r.data.data),
+    }),
   })
 
   const { data: tags } = useQuery({
     queryKey: ['tags'],
-    queryFn: () => tagApi.getAll().then(r => r.data.data),
+    queryFn: () => tagApi.getAll(),
   })
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1
+  const isFirst = page === 0
+  const isLast = data ? page >= totalPages - 1 : true
 
   const toggleTag = (id: number) =>
     setSelectedTagIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   return (
     <div className={styles.page}>
-      {/* 헤더 */}
       <div className={styles.top}>
         <div>
           <h1 className={styles.heading}>프로젝트 탐색</h1>
           <p className={styles.sub}>팀원을 찾는 프로젝트를 둘러보세요</p>
         </div>
-        <Link to="/projects/new">
+        <Link to="/project/new">
           <Button size="md">+ 모집 공고 등록</Button>
         </Link>
       </div>
 
-      {/* 검색 + 필터 */}
       <div className={styles.filterBar}>
         <input
           className={styles.search}
@@ -73,10 +76,9 @@ export default function ProjectListPage() {
         </div>
       </div>
 
-      {/* 태그 필터 */}
       {tags && (
         <div className={styles.tagFilter}>
-          {tags.filter(t => t.type === 'TECH').map(t => (
+          {tags.filter(t => t.category === 'PROJECT').map(t => (
             <TagChip
               key={t.id}
               tag={t}
@@ -88,46 +90,46 @@ export default function ProjectListPage() {
         </div>
       )}
 
-      {/* 목록 */}
       {isLoading ? (
         <div className={styles.loading}>불러오는 중...</div>
       ) : (
         <>
           <div className={styles.grid}>
-            {data?.content.map(project => (
-              <Link to={`/projects/${project.id}`} key={project.id} className={styles.card}>
+            {data?.content.map(post => (
+              <Link to={`/posts/${post.id}`} key={post.id} className={styles.card}>
                 <div className={styles.cardTop}>
-                  <StatusBadge status={project.status} />
-                  <span className={styles.category}>{project.category}</span>
+                  <StatusBadge status={post.status} />
+                  <span className={styles.category}>{post.subCategory}</span>
                 </div>
-                <h3 className={styles.cardTitle}>{project.title}</h3>
-                <p className={styles.cardDesc}>{project.description}</p>
+                <h3 className={styles.cardTitle}>{post.title}</h3>
+                <p className={styles.cardDesc}>{post.content}</p>
                 <div className={styles.cardTags}>
-                  {project.tags.slice(0, 3).map(t => (
+                  {post.tags?.slice(0, 3).map(t => (
                     <TagChip key={t.id} tag={t} size="sm" />
                   ))}
                 </div>
                 <div className={styles.cardFooter}>
                   <div className={styles.leader}>
                     <div className={styles.leaderAvatar}>
-                      {project.leader.name.charAt(0)}
+                      {post.author?.nickname?.charAt(0)}
                     </div>
-                    <span>{project.leader.nickname}</span>
+                    <span>{post.author?.nickname}</span>
                   </div>
-                  <span className={styles.members}>
-                    {project.currentMembers} / {project.maxMembers}명
-                  </span>
+                  {post.capacity != null && (
+                    <span className={styles.members}>
+                      {post.currentMemberCount} / {post.capacity}명
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
           </div>
 
-          {/* 페이지네이션 */}
-          {data && data.totalPages > 1 && (
+          {data && totalPages > 1 && (
             <div className={styles.pagination}>
-              <Button variant="outline" size="sm" disabled={data.first} onClick={() => setPage(p => p - 1)}>이전</Button>
-              <span>{page + 1} / {data.totalPages}</span>
-              <Button variant="outline" size="sm" disabled={data.last} onClick={() => setPage(p => p + 1)}>다음</Button>
+              <Button variant="outline" size="sm" disabled={isFirst} onClick={() => setPage(p => p - 1)}>이전</Button>
+              <span>{page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={isLast} onClick={() => setPage(p => p + 1)}>다음</Button>
             </div>
           )}
         </>

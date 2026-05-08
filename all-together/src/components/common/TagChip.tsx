@@ -11,8 +11,9 @@ interface TagChipProps {
 
 export default function TagChip({ tag, selected, onClick, size = 'md' }: TagChipProps) {
   const colorClass =
-    tag.type === 'TECH' ? styles.tech :
-    tag.type === 'INTEREST' ? styles.interest :
+    tag.category === 'PROJECT' ? styles.tech :
+    tag.category === 'STUDY'   ? styles.interest :
+    tag.category === 'MEETUP'  ? styles.interest :
     styles.role
 
   return (

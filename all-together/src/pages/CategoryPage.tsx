@@ -1,7 +1,20 @@
+import { useEffect } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/ko'
+import { postApi } from '@/api'
 import type { PostCategory } from '@/types'
 import Button from '@/components/common/Button'
+import { StatusBadge } from '@/components/common/Badge'
+import Pagination from '@/components/common/Pagination'
 import styles from './CategoryPage.module.css'
+
+const PAGE_SIZE = 12
+
+dayjs.extend(relativeTime)
+dayjs.locale('ko')
 
 const CATEGORY_META: Record<string, { title: string; desc: string; category: PostCategory; subs: string[] }> = {
   study: {
@@ -30,26 +43,76 @@ const CATEGORY_META: Record<string, { title: string; desc: string; category: Pos
   },
 }
 
-const MOCK_POSTS = [
-  { id: 1, title: '정처기 실기 스터디 모집합니다', status: '모집중', author: '김지원', time: '2시간 전', tags: ['정처기', '자격증'], members: '3/5' },
-  { id: 2, title: '토익 900+ 목표 같이 해요', status: '모집중', author: '이수연', time: '5시간 전', tags: ['토익', '어학'], members: '2/4' },
-  { id: 3, title: 'CS 면접 스터디 (주 2회)', status: '모집완료', author: '박민준', time: '1일 전', tags: ['CS', '면접'], members: '6/6' },
+type StatusFilter = 'ALL' | 'RECRUITING' | 'COMPLETE' | 'FINISHED' | 'GENERAL'
+
+const STATUS_TABS: { value: StatusFilter; label: string; categoryFilter?: 'COMMUNITY' | 'NON_COMMUNITY' }[] = [
+  { value: 'ALL',        label: '전체' },
+  { value: 'RECRUITING', label: '모집중',     categoryFilter: 'NON_COMMUNITY' },
+  { value: 'COMPLETE',   label: '모집마감',   categoryFilter: 'NON_COMMUNITY' },
+  { value: 'FINISHED',   label: '종료',       categoryFilter: 'NON_COMMUNITY' },
+  { value: 'GENERAL',    label: '일반',       categoryFilter: 'COMMUNITY' },
 ]
 
 export default function CategoryPage() {
   const { category } = useParams<{ category: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedSub = searchParams.get('sub') || '전체'
+  const selectedStatus = (searchParams.get('status') as StatusFilter) || 'ALL'
+  const page = Math.max(0, Number(searchParams.get('page') ?? '0') || 0)
 
   const meta = CATEGORY_META[category || ''] || CATEGORY_META.study
+  const isCommunity = meta.category === 'COMMUNITY'
 
-  const handleSubFilter = (sub: string) => {
-    if (sub === '전체') {
-      setSearchParams({})
-    } else {
-      setSearchParams({ sub })
-    }
+  const visibleStatusTabs = STATUS_TABS.filter(t => {
+    if (!t.categoryFilter) return true
+    if (t.categoryFilter === 'COMMUNITY') return isCommunity
+    if (t.categoryFilter === 'NON_COMMUNITY') return !isCommunity
+    return true
+  })
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['posts', meta.category, selectedSub, selectedStatus, page],
+    queryFn: () =>
+      postApi.getList({
+        category: meta.category,
+        subCategory: selectedSub === '전체' ? undefined : selectedSub,
+        status: selectedStatus === 'ALL' ? undefined : selectedStatus,
+        page,
+        size: PAGE_SIZE,
+      }),
+  })
+
+  const updateParam = (key: string, value: string, defaultValue: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (value === defaultValue) next.delete(key)
+    else next.set(key, value)
+    next.delete('page')   // 필터 변경 시 첫 페이지로
+    setSearchParams(next)
   }
+
+  const handleSubFilter = (sub: string) => updateParam('sub', sub, '전체')
+  const handleStatusFilter = (status: StatusFilter) => updateParam('status', status, 'ALL')
+
+  const handlePage = (next: number) => {
+    const params = new URLSearchParams(searchParams)
+    if (next === 0) params.delete('page')
+    else params.set('page', String(next))
+    setSearchParams(params)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // 카테고리 자체가 바뀌면 페이지 리셋
+  useEffect(() => {
+    if (page !== 0) {
+      const params = new URLSearchParams(searchParams)
+      params.delete('page')
+      setSearchParams(params, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category])
+
+  const posts = data?.content ?? []
+  const total = data?.total ?? 0
 
   return (
     <div className={styles.page}>
@@ -63,7 +126,18 @@ export default function CategoryPage() {
         </Link>
       </div>
 
-      {/* 태그 필터 바 */}
+      <div className={styles.statusTabs}>
+        {visibleStatusTabs.map(t => (
+          <button
+            key={t.value}
+            className={`${styles.statusTab} ${selectedStatus === t.value ? styles.statusActive : ''}`}
+            onClick={() => handleStatusFilter(t.value)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className={styles.filterBar}>
         {meta.subs.map(sub => (
           <button
@@ -76,28 +150,44 @@ export default function CategoryPage() {
         ))}
       </div>
 
-      {/* 게시글 리스트 */}
+      {isLoading && <div className={styles.empty}>불러오는 중...</div>}
+      {isError && <div className={styles.empty}>게시글을 불러오지 못했습니다.</div>}
+      {!isLoading && !isError && posts.length === 0 && (
+        <div className={styles.empty}>
+          {selectedSub === '전체' ? '아직 게시글이 없습니다.' : `'${selectedSub}' 게시글이 아직 없습니다.`}
+        </div>
+      )}
+
       <div className={styles.list}>
-        {MOCK_POSTS.map(post => (
-          <Link to={`/${category}/${post.id}`} key={post.id} className={styles.postCard}>
-            <span className={`${styles.badge} ${post.status === '모집완료' ? styles.badgeDone : ''}`}>
-              {post.status}
-            </span>
-            <h3 className={styles.postTitle}>{post.title}</h3>
-            <div className={styles.postTags}>
-              {post.tags.map(tag => (
-                <span key={tag} className={styles.tag}>{tag}</span>
-              ))}
+        {posts.map(post => (
+          <Link to={`/posts/${post.id}`} key={post.id} className={styles.postCard}>
+            <div className={styles.cardHead}>
+              <StatusBadge status={post.status} />
+              <span className={styles.subCategory}>{post.subCategory}</span>
             </div>
+            <h3 className={styles.postTitle}>{post.title}</h3>
+            {post.tags?.length > 0 && (
+              <div className={styles.postTags}>
+                {post.tags.map(tag => (
+                  <span key={tag.id} className={styles.tag}>{tag.name}</span>
+                ))}
+              </div>
+            )}
             <div className={styles.postMeta}>
-              <span>{post.author}</span>
+              <span>{post.author?.nickname ?? '익명'}</span>
               <span>·</span>
-              <span>{post.time}</span>
-              <span className={styles.members}>{post.members}명</span>
+              <span>{dayjs(post.createdAt).fromNow()}</span>
+              {post.capacity != null && (
+                <span className={styles.members}>
+                  {post.currentMemberCount}/{post.capacity}명
+                </span>
+              )}
             </div>
           </Link>
         ))}
       </div>
+
+      <Pagination page={page} size={PAGE_SIZE} total={total} onChange={handlePage} />
     </div>
   )
 }

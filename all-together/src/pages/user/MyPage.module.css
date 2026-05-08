@@ -32,6 +32,23 @@
 }
 .editBtn:hover { background: var(--color-bg); }
 
+.tagsRow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+/* My posts */
+.myPostList { display: flex; flex-direction: column; gap: 10px; }
+.myPostCard {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: 1.1rem 1.25rem;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: border-color 0.15s; color: inherit;
+}
+.myPostCard:hover { border-color: var(--color-primary-border); }
+.myPostHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.myPostCategory { font-size: 12px; color: var(--color-text-hint); }
+.myPostDate { font-size: 12px; color: var(--color-text-hint); margin-left: auto; }
+.myPostTitle { font-size: 15px; font-weight: 600; }
+.myPostMembers { font-size: 12px; color: var(--color-text-secondary); }
+
 /* tabs */
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); }
 .tab {
@@ -43,9 +60,186 @@
 .tab:hover { color: var(--color-text-primary); }
 .active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
 
-.section { display: flex; flex-direction: column; gap: 1rem; }
+.section { display: flex; flex-direction: column; gap: 1.25rem; }
 .sectionHint { font-size: 13px; color: var(--color-text-secondary); }
 .empty { font-size: 14px; color: var(--color-text-secondary); padding: 2rem; text-align: center; }
+
+/* 서브 탭 (지원 / 받은 지원서 토글) */
+.subTabs {
+  display: inline-flex; gap: 4px;
+  background: var(--color-bg);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+.subTab {
+  padding: 7px 16px;
+  font-size: 13px; font-weight: 500;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  transition: all 0.12s;
+}
+.subTab:hover { color: var(--color-text-primary); }
+.subActive {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+.subCount {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  font-size: 11px; font-weight: 600;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-full);
+}
+.subActive .subCount {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* 프로젝트 그룹 (참여중 / 종료) */
+.projectGroup {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.groupTitle {
+  font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+}
+.groupCount {
+  font-size: 12px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  padding: 1px 9px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.myPostMeta {
+  display: flex; gap: 6px;
+  font-size: 12px; color: var(--color-text-secondary);
+}
+.dot { color: var(--color-border); }
+
+/* 지표 카드 (리뷰 탭 상단) */
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (max-width: 600px) { .metricsRow { grid-template-columns: 1fr; } }
+.metricCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.metricLabel {
+  font-size: 12px; font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.metricValue {
+  font-size: 28px; font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+.metricHint {
+  font-size: 12px; color: var(--color-text-hint);
+}
+
+/* 리더 항목별 평균 박스 */
+.itemAvgBox {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+/* ─── 컴팩트 리뷰 카드 ─────────────────────────────────────── */
+.compactReviewList { display: flex; flex-direction: column; gap: 8px; }
+
+.compactCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: border-color 0.12s;
+}
+.compactCard:hover { border-color: var(--color-primary-border); }
+
+.compactHead {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.compactAvatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.compactName {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text-primary);
+}
+.compactDot { color: var(--color-border); font-size: 12px; }
+.compactProject {
+  font-size: 12px; color: var(--color-text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 200px;
+}
+.compactStars {
+  margin-left: auto;
+  font-size: 13px; font-weight: 700;
+  color: #FFB400;
+}
+.compactDate {
+  font-size: 11px; color: var(--color-text-hint);
+}
+
+.compactScoreRow {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.compactScoreChip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+}
+.compactScoreChip strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.compactComment {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  font-style: italic;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* project grid */
 .projectGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }

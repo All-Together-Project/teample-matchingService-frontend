@@ -1,8 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
-import { authApi } from '@/api'
+import { authApi, postApi } from '@/api'
+import type { PostCategory } from '@/types'
 import styles from './Header.module.css'
+
+const PATH_TO_CATEGORY: Record<string, PostCategory> = {
+  '/study': 'STUDY',
+  '/project': 'PROJECT',
+  '/meetup': 'MEETUP',
+  '/community': 'COMMUNITY',
+}
 
 const MENU_ITEMS = [
   {
@@ -58,8 +67,9 @@ export default function Header() {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
   const handleLogout = async () => {
+    if (!confirm('로그아웃 하시겠습니까?')) return
     try { await authApi.logout() } catch { /* ignore */ }
-    logout()
+    await logout()
     navigate('/')
   }
 
@@ -68,7 +78,7 @@ export default function Header() {
   return (
     <header className={styles.header} onMouseLeave={() => setOpenMenu(null)}>
       <div className={`container ${styles.inner}`}>
-        <Link to={isAuthenticated ? '/study' : '/'} className={styles.logo}>
+        <Link to="/" className={styles.logo}>
           🤝 AllTogether
         </Link>
 
@@ -97,17 +107,21 @@ export default function Header() {
                   <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                 </svg>
               </Link>
-              <Link to="/applications" className={styles.iconBtn} title="지원 내역">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                </svg>
-              </Link>
-              <Link to="/my" className={styles.avatar}>
-                {user?.profileImage
-                  ? <img src={user.profileImage} alt={user.name} />
-                  : <span>{user?.name?.charAt(0)}</span>
-                }
-              </Link>
+              <div className={styles.avatarWrap}>
+                <Link to="/my" className={styles.avatar} title="마이페이지">
+                  {user?.profileUrl
+                    ? <img src={user.profileUrl} alt={user.nickname} />
+                    : <span>{user?.nickname?.charAt(0)}</span>
+                  }
+                </Link>
+                <button
+                  type="button"
+                  className={styles.miniLogoutBtn}
+                  onClick={handleLogout}
+                >
+                  로그아웃
+                </button>
+              </div>
             </>
           ) : (
             <Link to="/login" className={styles.loginBtn}>로그인</Link>
@@ -135,13 +149,37 @@ export default function Header() {
                 </Link>
               ))}
             </div>
-            <div className={styles.megaPreview}>
-              <h4 className={styles.previewTitle}>추천 게시글</h4>
-              <p className={styles.previewEmpty}>게시글을 불러오는 중...</p>
-            </div>
+            <MegaMenuPreview categoryPath={openMenu} />
           </div>
         </div>
       )}
     </header>
   )
 }
+
+function MegaMenuPreview({ categoryPath }: { categoryPath: string }) {
+  const category = PATH_TO_CATEGORY[categoryPath]
+  const { data, isLoading } = useQuery({
+    queryKey: ['mega-preview', category],
+    queryFn: () => postApi.getList({ category, status: 'RECRUITING', size: 4 }),
+    enabled: !!category,
+    staleTime: 60_000,
+  })
+
+  const posts = data?.content ?? []
+
+  return (
+    <div className={styles.megaPreview}>
+      <h4 className={styles.previewTitle}>모집중 게시글</h4>
+      {isLoading && <p className={styles.previewEmpty}>불러오는 중...</p>}
+      {!isLoading && posts.length === 0 && <p className={styles.previewEmpty}>모집중인 게시글이 없습니다.</p>}
+      {posts.map(p => (
+        <Link key={p.id} to={`/posts/${p.id}`} className={styles.previewItem}>
+          <span className={styles.previewSub}>{p.subCategory}</span>
+          <p className={styles.previewItemTitle}>{p.title}</p>
+        </Link>
+      ))}
+    </div>
+  )
+}
+

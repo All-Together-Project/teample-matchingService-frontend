@@ -20,6 +20,49 @@
 .section h2 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
 .desc { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; white-space: pre-wrap; }
 
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.imageItem {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.imageItem:hover {
+  border-color: var(--color-primary);
+  transform: scale(1.02);
+}
+.imageItem img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.attachList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.attachItem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+.attachIcon { font-size: 14px; flex-shrink: 0; }
+.attachName {
+  flex: 1; color: var(--color-primary);
+  text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attachName:hover { text-decoration: underline; }
+.attachSize { font-size: 11px; color: var(--color-text-hint); flex-shrink: 0; }
+
 .roles { display: flex; flex-direction: column; gap: 12px; }
 .roleCard { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem; }
 .roleTop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -31,13 +74,52 @@
 /* sidebar */
 .sideCard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 12px; }
 .leaderActions { display: flex; flex-direction: column; gap: 8px; }
+.statusActions { display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-light); margin-bottom: 4px; }
 .sideTitle { font-size: 14px; font-weight: 600; }
 .sideInfo { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--color-border-light); padding-top: 12px; }
 .sideRow { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .sideRow span:first-child { color: var(--color-text-secondary); }
 
 .recommendList { display: flex; flex-direction: column; gap: 10px; }
+.roleBlock { border-top: 1px solid var(--color-border-light); padding-top: 12px; }
+.roleBlock .sideTitle { margin-bottom: 8px; }
+.roleList { display: flex; flex-direction: column; gap: 6px; list-style: none; padding: 0; }
+.roleItem { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 4px 0; }
+.roleItemName { color: var(--color-text-primary); font-weight: 500; }
+.roleItemCount { color: var(--color-text-secondary); font-size: 12px; }
+.roleItemFull { color: var(--color-text-hint); }
+
 .recommendItem { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; padding: 4px 0; }
+
+.empty { font-size: 14px; color: var(--color-text-hint); padding: 1.5rem 0; text-align: center; }
+.reviewHint { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; }
+
+.memberList { display: flex; flex-direction: column; gap: 8px; }
+.memberRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+.memberLeft { display: flex; align-items: center; gap: 12px; }
+.memberAvatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.memberAvatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.memberName { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+
+.reviewDone {
+  font-size: 13px; color: var(--color-success, #16a34a);
+  background: #dcfce7;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
 .recommendItem:hover .recName { color: var(--color-primary); }
 .recAvatar { width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .recName { font-size: 13px; font-weight: 500; }
