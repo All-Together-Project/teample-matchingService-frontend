@@ -741,7 +741,7 @@ export const applicationApi = {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
     if (error) throw error
-    return (data ?? []) as Application[]
+    return (data ?? []) as unknown as Application[]
   },
 
   getPostApplications: async (postId: number) => {
@@ -757,7 +757,7 @@ export const applicationApi = {
       .eq('post_id', postId)
       .order('created_at', { ascending: false })
     if (error) throw error
-    return (data ?? []) as Application[]
+    return (data ?? []) as unknown as Application[]
   },
 
   // 내가 작성한 모든 게시글의 지원서 — "받은 지원서 관리" 탭용
