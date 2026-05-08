@@ -11,12 +11,12 @@ export default function MessagePage() {
 
   const { data: inbox } = useQuery({
     queryKey: ['messages-inbox'],
-    queryFn: () => messageApi.getInbox().then(r => r.data.data),
+    queryFn: () => messageApi.getInbox(),
   })
 
   const { data: sent } = useQuery({
     queryKey: ['messages-sent'],
-    queryFn: () => messageApi.getSent().then(r => r.data.data),
+    queryFn: () => messageApi.getSent(),
     enabled: tab === 'sent',
   })
 
@@ -62,7 +62,7 @@ export default function MessagePage() {
                 onClick={() => handleSelect(msg)}
               >
                 <div className={styles.msgAvatar}>
-                  {(tab === 'inbox' ? msg.sender : msg.receiver).name.charAt(0)}
+                  {(tab === 'inbox' ? msg.sender : msg.receiver).nickname.charAt(0)}
                 </div>
                 <div className={styles.msgInfo}>
                   <div className={styles.msgTop}>
@@ -87,7 +87,7 @@ export default function MessagePage() {
             <div className={styles.msgContent}>
               <div className={styles.msgHeader}>
                 <div className={styles.msgAvatarLg}>
-                  {(tab === 'inbox' ? selected.sender : selected.receiver).name.charAt(0)}
+                  {(tab === 'inbox' ? selected.sender : selected.receiver).nickname.charAt(0)}
                 </div>
                 <div>
                   <p className={styles.msgFromLg}>

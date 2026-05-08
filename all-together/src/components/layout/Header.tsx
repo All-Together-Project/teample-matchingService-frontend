@@ -103,9 +103,9 @@ export default function Header() {
                 </svg>
               </Link>
               <Link to="/my" className={styles.avatar}>
-                {user?.profileImage
-                  ? <img src={user.profileImage} alt={user.name} />
-                  : <span>{user?.name?.charAt(0)}</span>
+                {user?.profileUrl
+                  ? <img src={user.profileUrl} alt={user.nickname} />
+                  : <span>{user?.nickname?.charAt(0)}</span>
                 }
               </Link>
             </>

@@ -3,14 +3,17 @@
 본 프로젝트는 React와 Supabase를 활용한 서버리스(Serverless) 아키텍처로 구성된 **스터디, 프로젝트, 모임 매칭 플랫폼**입니다. 개발자뿐 아니라 어학, 자격증, 취미, 운동 등 다양한 분야의 사람들이 함께할 팀원을 찾고 모임을 만들 수 있는 광범위한 매칭 서비스입니다. 기존 백엔드 서버 없이 Supabase의 Auth, Database(PostgreSQL), Storage를 직접 호출하여 사용합니다.
 
 ## 1. 기술 스택 및 프론트엔드 개발 원칙 **[필독]**
-* **Frontend:** React, TypeScript, Tailwind CSS
+* **Frontend:** React 18, TypeScript, Vite, **CSS Modules** (`*.module.css`)
 * **Backend/BaaS:** Supabase (PostgreSQL, Auth, Storage)
-* **State Management:** React Query, Zustand (필요시)
+* **State Management:** Zustand (auth/UI), TanStack Query (server state)
+* **Forms/Validation:** react-hook-form + zod
 * **AI:** Gemini API (무료 티어) — 자연어 검색, 맞춤 추천
 * **Vector Search:** Supabase pgvector — 게시글 임베딩 기반 유사 검색
 * **서버리스 아키텍처 준수:** 백엔드 API를 별도로 만들지 않고, Supabase SDK(`@supabase/supabase-js`)를 활용하여 프론트엔드에서 데이터를 직접 CRUD 합니다.
-* **보안 및 인증:** 모든 데이터 통신은 Supabase Auth의 JWT 토큰 기반으로 이루어져야 하며, RLS(Row Level Security)를 고려하여 코드를 작성해야 합니다.
+* **보안 및 인증:** 모든 데이터 통신은 Supabase Auth(JWT 자동 갱신) 기반으로 이루어지며, 모든 테이블에 RLS(Row Level Security)를 활성화합니다.
 * **엄격한 코드 수정 통제:** 요구된 UI 컴포넌트와 기능 외에 불필요한 주석 추가나 기존 코드를 임의로 변경하는 것을 절대 금지합니다. 정확히 지시된 로직만 작성하세요.
+* **신뢰도 시스템:** 매너 온도(default `36.5°C`)만 사용. 별도 티어(ROOKIE/BRONZE/...) 체계 도입 금지.
+* **역할 시스템:** `post_members.role`은 자유 텍스트(string). 카테고리별로 유연하게 부여(예: 스터디=스터디장/멤버/튜터, 프로젝트=리더/개발자/디자이너, 모임=모임장/멤버).
 
 ## 2. 서비스 카테고리 구조
 
@@ -170,17 +173,19 @@
 ## 6. 구현 로드맵
 
 ### Phase 1 — 기본 구조 (현재 완료)
-- [x] React + TypeScript + Tailwind 프로젝트 초기화
-- [x] Supabase 클라이언트 설정
-- [x] 데이터 fetching 커스텀 훅 골격
+- [x] React + TypeScript + Vite + CSS Modules 프로젝트 초기화
+- [x] `@supabase/supabase-js` 클라이언트 설정 (`src/api/client.ts`)
+- [x] 통합 Posts 타입 모델 정리 (`src/types/index.ts`)
+- [x] API facade를 Supabase SDK 호출로 전환 (`src/api/index.ts`)
+- [x] Zustand auth store + Supabase 세션 동기화
 - [x] 메가 메뉴 헤더, 메인 페이지, 카테고리 페이지, 로그인 페이지 UI
 
 ### Phase 2 — Supabase 연동 & 핵심 기능
-- [ ] Supabase 프로젝트 생성 및 .env 설정
+- [ ] Supabase 프로젝트 생성 및 `.env`에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 설정
 - [ ] DB 테이블 생성 (SQL 마이그레이션)
 - [ ] RLS 정책 설정
-- [ ] 회원가입/로그인 (Supabase Auth)
-- [ ] 게시글 CRUD
+- [ ] 회원가입/로그인 화면을 Supabase Auth와 연결
+- [ ] 게시글 CRUD 화면 — 4개 카테고리 라우팅
 - [ ] 지원/모집 시스템
 - [ ] 태그 기반 추천 (Phase 1 AI — AI 없이)
 

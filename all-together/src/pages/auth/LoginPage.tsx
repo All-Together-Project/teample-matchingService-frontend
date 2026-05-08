@@ -27,12 +27,12 @@ export default function LoginPage() {
     setError('')
     try {
       const res = await authApi.login(data)
-      const { accessToken, refreshToken } = res.data.data
-      const meRes = await authApi.me()
-      setAuth(meRes.data.data, accessToken, refreshToken)
+      const me = await authApi.me()
+      if (!me) throw new Error('PROFILE_NOT_FOUND')
+      setAuth(me, res.session?.access_token ?? '')
       navigate('/study')
     } catch (e: any) {
-      setError(e.response?.data?.message ?? '이메일 또는 비밀번호를 확인해주세요')
+      setError(e.message ?? '이메일 또는 비밀번호를 확인해주세요')
     }
   }
 

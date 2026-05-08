@@ -45,7 +45,12 @@ export default function App() {
           {/* 카테고리 페이지 */}
           <Route path="/:category" element={<CategoryPage />} />
 
-          {/* 기존 프로젝트 라우트 (하위 호환) */}
+          {/* 통합 게시글 (Posts) */}
+          <Route path="/posts/:id" element={<ProjectDetailPage />} />
+          <Route path="/posts/:id/edit" element={<ProjectEditPage />} />
+          <Route path="/project/new" element={<ProjectCreatePage />} />
+
+          {/* 하위 호환 — 기존 /projects 경로 유지 */}
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/projects/new" element={<ProjectCreatePage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />

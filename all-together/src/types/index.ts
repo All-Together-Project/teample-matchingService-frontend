@@ -1,35 +1,38 @@
 // ─── User & Auth ───────────────────────────────────────────────────
 export interface User {
-  id: number
+  id: string                // UUID (Supabase Auth)
   email: string
-  name: string
   nickname: string
-  profileImage?: string
-  bio?: string
   major?: string
-  organization?: string
-  roles: UserRole[]
-  techTags: Tag[]
-  interestTags: Tag[]
-  temperature: number      // 신뢰도 온도 (0~100)
-  tier: UserTier
+  profileUrl?: string
+  introduction?: string
+  temperature: number       // 매너 온도 (default 36.5)
   createdAt: string
 }
 
-export type UserRole = 'DEVELOPER' | 'DESIGNER' | 'PLANNER' | 'DATA' | 'MARKETING' | 'OTHER'
-export type UserTier = 'ROOKIE' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+// 카테고리별 유연한 역할 — 자유 입력 (예: 리더, 멤버, 개발자, 디자이너, 튜터, 모임장)
+export type UserRole = string
 
 export interface Tag {
   id: number
   name: string
-  type: TagType
+  category: TagCategory
 }
-export type TagType = 'TECH' | 'INTEREST' | 'ROLE'
+
+export type TagCategory = 'STUDY' | 'PROJECT' | 'MEETUP' | 'GENERAL'
 
 // ─── Category ─────────────────────────────────────────────────────
 export type PostCategory = 'STUDY' | 'PROJECT' | 'MEETUP' | 'COMMUNITY'
 export type PostStatus = 'RECRUITING' | 'COMPLETE' | 'FINISHED' | 'GENERAL'
 
+export const SUB_CATEGORIES: Record<PostCategory, string[]> = {
+  STUDY:     ['어학', '자격증/시험', '독서', '코딩/개발', '기타 학습'],
+  PROJECT:   ['개발', '디자인', '공모전', '창업/사이드', '기타 협업'],
+  MEETUP:    ['운동/스포츠', '취미/문화', '네트워킹', '밥약/번개', '기타 모임'],
+  COMMUNITY: ['자유게시판', '후기', 'Q&A', '정보공유', '공지사항'],
+}
+
+// ─── Post (통합 게시글 모델) ──────────────────────────────────────
 export interface Post {
   id: number
   category: PostCategory
@@ -42,90 +45,84 @@ export interface Post {
   period?: string
   deadline?: string
   authorId: string
-  author: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
+  author: Pick<User, 'id' | 'nickname' | 'profileUrl' | 'temperature'>
   tags: Tag[]
   createdAt: string
 }
 
-// ─── Project ───────────────────────────────────────────────────────
-export interface Project {
-  id: number
-  title: string
-  description: string
-  status: ProjectStatus
-  category: string
-  startDate?: string
-  endDate?: string
-  maxMembers: number
-  currentMembers: number
-  leader: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
-  tags: Tag[]
-  roles: ProjectRole[]
-  createdAt: string
-  updatedAt: string
-}
+// 프로젝트 카테고리 게시글의 별칭 (기존 코드 호환용)
+export type Project = Post
 
-export type ProjectStatus = 'RECRUITING' | 'COMPLETED' | 'CLOSED'
-
-export interface ProjectRole {
+// ─── Post Member ───────────────────────────────────────────────────
+export interface PostMember {
   id: number
-  roleName: string
-  roleType: UserRole
-  description: string
-  count: number
-  filledCount: number
-  requiredTags: Tag[]
+  postId: number
+  userId: string
+  role: UserRole          // 자유 문자열
+  user: Pick<User, 'id' | 'nickname' | 'profileUrl' | 'temperature'>
 }
 
 // ─── Application ───────────────────────────────────────────────────
 export interface Application {
   id: number
-  projectId: number
-  project?: Pick<Project, 'id' | 'title' | 'status'>
-  applicant: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
-  roleId: number
-  roleName: string
-  motivation: string
-  introduction: string
+  postId: number
+  post?: Pick<Post, 'id' | 'title' | 'category' | 'status'>
+  userId: string
+  applicant: Pick<User, 'id' | 'nickname' | 'profileUrl' | 'temperature'>
+  introduction: string                  // 지원 동기 + 자기소개
   status: ApplicationStatus
   createdAt: string
-  updatedAt: string
 }
 
-export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED'
 
-// ─── Review ────────────────────────────────────────────────────────
+// ─── Review (카테고리별 항목 기반) ────────────────────────────────
+// 카테고리별 평가 항목 템플릿
+export interface ReviewItem {
+  id: number
+  category: Exclude<PostCategory, 'COMMUNITY'>   // 커뮤니티는 리뷰 없음
+  itemName: string
+  sortOrder: number
+}
+
+// 항목별 평가 항목 기본값 (DB Review_Items 테이블 시드 데이터와 동일)
+export const REVIEW_ITEM_TEMPLATES: Record<Exclude<PostCategory, 'COMMUNITY'>, string[]> = {
+  PROJECT: ['전문성', '소통 능력', '시간 약속', '협동심', '열정'],
+  STUDY:   ['성실도', '참여도', '소통 능력', '지식 공유', '시간 약속'],
+  MEETUP:  ['매너', '시간 약속', '분위기 기여', '재참여 의사', '소통'],
+}
+
 export interface Review {
   id: number
-  projectId: number
-  projectTitle: string
-  reviewer: Pick<User, 'id' | 'name' | 'nickname'>
-  reviewee: Pick<User, 'id' | 'name' | 'nickname'>
-  expertise: number       // 전문성 1~5
-  communication: number   // 소통성 1~5
-  punctuality: number     // 시간 준수성 1~5
-  participation: number   // 참여 태도 1~5
-  passion: number         // 열정 1~5
+  postId: number
+  postCategory: Exclude<PostCategory, 'COMMUNITY'>
+  postTitle: string
+  evaluator: Pick<User, 'id' | 'nickname'>
+  target: Pick<User, 'id' | 'nickname'>
   comment: string
+  scores: ReviewScore[]
   createdAt: string
+}
+
+export interface ReviewScore {
+  itemId: number
+  itemName: string
+  score: number   // 1~5
 }
 
 export interface ReviewSummary {
-  userId: number
-  averageExpertise: number
-  averageCommunication: number
-  averagePunctuality: number
-  averageParticipation: number
-  averagePassion: number
+  userId: string
   totalReviews: number
+  averageOverall: number                     // 전체 평균 (0~5)
+  itemAverages: { itemName: string; average: number }[]   // 항목별 평균 (동적)
   recentComment: string
 }
 
 // ─── Message ───────────────────────────────────────────────────────
 export interface Message {
   id: number
-  sender: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
-  receiver: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
+  sender: Pick<User, 'id' | 'nickname' | 'profileUrl'>
+  receiver: Pick<User, 'id' | 'nickname' | 'profileUrl'>
   content: string
   isRead: boolean
   type: MessageType
@@ -137,16 +134,15 @@ export type MessageType = 'PERSONAL' | 'SYSTEM'
 // ─── Comment ───────────────────────────────────────────────────────
 export interface Comment {
   id: number
-  projectId: number
-  author: Pick<User, 'id' | 'name' | 'nickname' | 'profileImage'>
+  postId: number
+  author: Pick<User, 'id' | 'nickname' | 'profileUrl'>
   content: string
   parentId?: number
   replies?: Comment[]
   createdAt: string
-  updatedAt: string
 }
 
-// ─── API Response ──────────────────────────────────────────────────
+// ─── API Response (Supabase 응답을 단일화한 래퍼) ─────────────────
 export interface ApiResponse<T> {
   success: boolean
   data: T
@@ -172,11 +168,11 @@ export interface LoginRequest {
 export interface SignupRequest {
   email: string
   password: string
-  name: string
   nickname: string
 }
 
-export interface AuthTokens {
+export interface AuthSession {
   accessToken: string
   refreshToken: string
+  user: User
 }

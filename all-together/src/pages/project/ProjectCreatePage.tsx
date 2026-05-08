@@ -1,15 +1,14 @@
-// ProjectCreatePage.tsx
 import { useNavigate } from 'react-router-dom'
-import { projectApi } from '@/api'
+import { postApi } from '@/api'
 import ProjectForm from '@/components/project/ProjectForm'
-import type { Project } from '@/types'
+import type { Post } from '@/types'
 
 export default function ProjectCreatePage() {
   const navigate = useNavigate()
 
-  const handleSubmit = async (data: Partial<Project>) => {
-    const res = await projectApi.create(data)
-    navigate(`/projects/${res.data.data.id}`)
+  const handleSubmit = async (data: Partial<Post>) => {
+    const created = await postApi.create({ ...data, category: 'PROJECT' })
+    navigate(`/posts/${created.id}`)
   }
 
   return (
