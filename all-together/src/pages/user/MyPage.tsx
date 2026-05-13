@@ -432,6 +432,9 @@ function ProjectRowCard({ post }: { post: Post }) {
 }
 
 function CompactPersonalReviewCard({ review, onClick }: { review: Review; onClick: () => void }) {
+  const { user: me } = useAuthStore()
+  const isMine = me?.id === review.evaluator.id
+  const showAsAnon = !isMine
   const avg =
     review.scores.length > 0
       ? review.scores.reduce((s, x) => s + x.score, 0) / review.scores.length
@@ -439,8 +442,13 @@ function CompactPersonalReviewCard({ review, onClick }: { review: Review; onClic
   return (
     <button type="button" className={styles.compactCard} onClick={onClick}>
       <div className={styles.compactHead}>
-        <div className={styles.compactAvatar}>{review.evaluator.nickname.charAt(0)}</div>
-        <span className={styles.compactName}>{review.evaluator.nickname}</span>
+        <div className={`${styles.compactAvatar} ${showAsAnon ? styles.compactAvatarAnon : ''}`}>
+          {showAsAnon ? '?' : review.evaluator.nickname.charAt(0)}
+        </div>
+        <span className={styles.compactName}>
+          {showAsAnon ? '함께한 멤버' : review.evaluator.nickname}
+          {isMine && <span className={styles.compactMineTag}>(내가 작성)</span>}
+        </span>
         <span className={styles.compactDot}>·</span>
         <span className={styles.compactProject}>{review.postTitle}</span>
         <span className={styles.compactStars}>★ {avg.toFixed(1)}</span>

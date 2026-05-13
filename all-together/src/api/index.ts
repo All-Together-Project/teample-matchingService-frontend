@@ -937,6 +937,44 @@ export const reviewApi = {
     })) as Review[]
   },
 
+  // 특정 게시글에서 한 멤버가 받은 리뷰 (멤버 카드 클릭 시 익명 리뷰 모달용)
+  getForPostAndTarget: async (postId: number, targetId: string) => {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(`
+        id,
+        postId:post_id,
+        comment,
+        createdAt:created_at,
+        post:posts(title, category),
+        evaluator:users!reviews_evaluator_id_fkey(id, nickname),
+        scoreRaw:review_scores(
+          itemId:item_id,
+          score,
+          item:review_items(itemName:item_name)
+        )
+      `)
+      .eq('post_id', postId)
+      .eq('target_id', targetId)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return (data ?? []).map((raw: any) => ({
+      id: raw.id,
+      postId: raw.postId,
+      postCategory: raw.post?.category,
+      postTitle: raw.post?.title ?? '',
+      evaluator: raw.evaluator ?? { id: '', nickname: '익명' },
+      target: { id: targetId, nickname: '' },
+      comment: raw.comment ?? '',
+      createdAt: raw.createdAt,
+      scores: (raw.scoreRaw ?? []).map((s: any) => ({
+        itemId: s.itemId,
+        itemName: s.item?.itemName ?? '',
+        score: s.score,
+      })),
+    })) as Review[]
+  },
+
   getUserSummary: async (userId: string) => {
     const { data, error } = await supabase.rpc('review_summary_for_user', { p_user_id: userId })
     if (error) throw error
