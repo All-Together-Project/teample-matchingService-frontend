@@ -4,8 +4,10 @@ import { userApi, reviewApi, messageApi, projectReviewApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 import { TempBadge } from '@/components/common/Badge'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import ReviewDetailModal from '@/components/review/ReviewDetailModal'
 import Button from '@/components/common/Button'
 import { useState } from 'react'
+import type { Review } from '@/types'
 import styles from './UserProfilePage.module.css'
 
 export default function UserProfilePage() {
@@ -14,6 +16,7 @@ export default function UserProfilePage() {
   const { user: me } = useAuthStore()
   const [msgContent, setMsgContent] = useState('')
   const [msgSent, setMsgSent] = useState(false)
+  const [reviewDetail, setReviewDetail] = useState<Review | null>(null)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user', userId],
@@ -119,7 +122,13 @@ export default function UserProfilePage() {
           <div className={styles.section}>
             <h2>받은 리뷰 ({reviews?.length ?? 0})</h2>
             {reviews?.map(r => (
-              <div key={r.id} className={styles.reviewCard}>
+              <button
+                key={r.id}
+                type="button"
+                className={styles.reviewCard}
+                onClick={() => setReviewDetail(r)}
+                aria-label={`${r.evaluator.nickname}님이 ${r.postTitle}에 남긴 리뷰 상세보기`}
+              >
                 <div className={styles.reviewTop}>
                   <div className={styles.reviewerAvatar}>{r.evaluator.nickname.charAt(0)}</div>
                   <div>
@@ -129,11 +138,16 @@ export default function UserProfilePage() {
                   <span className={styles.reviewDate}>{new Date(r.createdAt).toLocaleDateString('ko-KR')}</span>
                 </div>
                 {r.comment && <p className={styles.comment}>"{r.comment}"</p>}
-              </div>
+                <span className={styles.viewMore}>자세히 보기 →</span>
+              </button>
             ))}
             {!reviews?.length && <p className={styles.empty}>아직 받은 리뷰가 없습니다</p>}
           </div>
         </div>
+
+        {reviewDetail && (
+          <ReviewDetailModal review={reviewDetail} onClose={() => setReviewDetail(null)} />
+        )}
 
         {!isMe && me && (
           <aside className={styles.sidebar}>
