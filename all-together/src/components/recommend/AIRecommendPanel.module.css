@@ -107,6 +107,22 @@
 }
 .reasonIcon { flex-shrink: 0; }
 
+/* 결과 — 주 추천 / 추가 추천 두 섹션 */
+.resultGroups { display: flex; flex-direction: column; gap: 1.5rem; }
+.resultSection { display: flex; flex-direction: column; gap: 10px; }
+.sectionHeader { display: flex; flex-direction: column; gap: 4px; }
+.sectionTitle {
+  font-size: 15px; font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+.sectionIntro {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* 프로젝트 결과 그리드 */
 .resultGrid {
   display: grid;

@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { postApi, recommendApi, type RecommendedProject, type RecommendedMember } from '@/api'
+import {
+  postApi,
+  recommendApi,
+  type RecommendedProject,
+  type RecommendedMember,
+  type RecommendProjectsResult,
+} from '@/api'
 import { TempBadge, StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
 import Button from '@/components/common/Button'
@@ -141,35 +147,61 @@ export default function AIRecommendPanel() {
   )
 }
 
-function ProjectResultsView({ results }: { results: RecommendedProject[] }) {
-  if (results.length === 0) {
+function ProjectResultsView({ results }: { results: RecommendProjectsResult }) {
+  const { primary, related, primaryIntro, relatedIntro } = results
+  if (primary.length === 0 && related.length === 0) {
     return <p className={styles.empty}>요청에 맞는 게시글을 찾지 못했어요. 다른 표현으로 시도해보세요.</p>
   }
   return (
-    <div className={styles.resultGrid}>
-      {results.map(r => (
-        <Link to={`/posts/${r.id}`} key={r.id} className={styles.resultCard}>
-          <div className={styles.cardTop}>
-            <StatusBadge status={r.status as any} />
-            <span className={styles.cat}>{CATEGORY_LABEL[r.category]} · {r.subCategory}</span>
-            <span className={styles.similarity}>{Math.round(r.similarity * 100)}% 일치</span>
+    <div className={styles.resultGroups}>
+      {primary.length > 0 && (
+        <section className={styles.resultSection}>
+          <header className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>✨ 주 추천</h3>
+            {primaryIntro && <p className={styles.sectionIntro}>{primaryIntro}</p>}
+          </header>
+          <div className={styles.resultGrid}>
+            {primary.map(r => <ProjectCard key={r.id} r={r} />)}
           </div>
-          <h3 className={styles.cardTitle}>{r.title}</h3>
-          {r.reason && (
-            <p className={styles.reason}>
-              <span className={styles.reasonIcon}>✨</span>{r.reason}
-            </p>
-          )}
-          <div className={styles.cardTags}>
-            {r.tags?.slice(0, 4).map(t => <TagChip key={t.id} tag={t} size="sm" />)}
+        </section>
+      )}
+      {related.length > 0 && (
+        <section className={styles.resultSection}>
+          <header className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>🔍 추가 추천</h3>
+            {relatedIntro && <p className={styles.sectionIntro}>{relatedIntro}</p>}
+          </header>
+          <div className={styles.resultGrid}>
+            {related.map(r => <ProjectCard key={r.id} r={r} />)}
           </div>
-          <div className={styles.cardFooter}>
-            <span>{r.author?.nickname ?? '익명'}</span>
-            {r.capacity != null && <span>{r.currentMemberCount}/{r.capacity}명</span>}
-          </div>
-        </Link>
-      ))}
+        </section>
+      )}
     </div>
+  )
+}
+
+function ProjectCard({ r }: { r: RecommendedProject }) {
+  return (
+    <Link to={`/posts/${r.id}`} className={styles.resultCard}>
+      <div className={styles.cardTop}>
+        <StatusBadge status={r.status as any} />
+        <span className={styles.cat}>{CATEGORY_LABEL[r.category]} · {r.subCategory}</span>
+        <span className={styles.similarity}>{Math.round(r.similarity * 100)}% 일치</span>
+      </div>
+      <h3 className={styles.cardTitle}>{r.title}</h3>
+      {r.reason && (
+        <p className={styles.reason}>
+          <span className={styles.reasonIcon}>✨</span>{r.reason}
+        </p>
+      )}
+      <div className={styles.cardTags}>
+        {r.tags?.slice(0, 4).map(t => <TagChip key={t.id} tag={t} size="sm" />)}
+      </div>
+      <div className={styles.cardFooter}>
+        <span>{r.author?.nickname ?? '익명'}</span>
+        {r.capacity != null && <span>{r.currentMemberCount}/{r.capacity}명</span>}
+      </div>
+    </Link>
   )
 }
 

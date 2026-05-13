@@ -23,11 +23,16 @@ supabase/.branches/
 *.dump
 *.bak
 
-# 데모 시드 SQL (평문 비밀번호/이메일 포함 — 커밋 금지)
+# 데모 시드 SQL (평문 비밀번호/이메일/실제 UUID 포함 — 커밋 금지)
 supabase/seed.sql
 supabase/seed_demo_300.sql
 supabase/seed_demo_data.sql
 supabase/seed_demo_users.sql
+supabase/seed_demo_ai_showcase.sql
+
+# 시연/데모 전용 로컬 스크립트 (실제 사용자 UUID 포함, 배포 불필요)
+scripts/seed-showcase-reviews.mjs
+scripts/list-showcase-candidates.mjs
 
 # 인증서 / 키
 *.pem

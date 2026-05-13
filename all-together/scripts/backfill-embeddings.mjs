@@ -10,7 +10,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.SUPABASE_URL
+// URL은 시크릿이 아니므로 프론트용 VITE_ 접두사 키도 fallback 허용 (retag-posts.mjs와 동일).
+const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY
 const GEMINI_KEY   = process.env.GEMINI_API_KEY
 
@@ -44,15 +45,28 @@ async function embedText(text) {
 
 async function main() {
   console.log('임베딩 누락 게시글 조회...')
+  // sub_category + 태그까지 같이 가져옴 (boilerplate content 변별력 회복)
   const { data: posts, error } = await supabase
-    .from('posts_missing_embedding')
-    .select('id, title, content')
+    .from('posts')
+    .select('id, title, content, category, sub_category, post_tags(tag:tags(name))')
+    .is('embedding', null)
+    .order('id')
   if (error) throw error
   console.log(`대상 ${posts.length}개`)
 
   let ok = 0, fail = 0
   for (const [i, p] of posts.entries()) {
-    const text = `${p.title}\n\n${p.content ?? ''}`.trim()
+    const tagNames = (p.post_tags ?? [])
+      .map((pt) => pt?.tag?.name)
+      .filter(Boolean)
+      .join(', ')
+    const text = [
+      `[제목] ${p.title}`,
+      `[카테고리] ${p.category}${p.sub_category ? ' / ' + p.sub_category : ''}`,
+      tagNames ? `[태그] ${tagNames}` : null,
+      `[본문] ${p.content ?? ''}`,
+    ].filter(Boolean).join('\n').trim()
+
     try {
       const vector = await embedText(text)
       const { error: updErr } = await supabase

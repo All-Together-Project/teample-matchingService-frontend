@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey)
 
     if (mode === 'project') {
-      const results = await recommendProjects(admin, prompt.trim())
-      return jsonResponse({ results })
+      const result = await recommendProjects(admin, prompt.trim())
+      return jsonResponse(result)
     } else {
       if (!postId) return jsonResponse({ error: 'postId required for member mode' }, 400)
       const { data: post } = await admin
@@ -68,15 +68,17 @@ Deno.serve(async (req) => {
 })
 
 async function recommendProjects(client: any, prompt: string) {
-  // 1) 프롬프트를 임베딩 후 match_posts
+  // 1) 프롬프트 임베딩 + match_posts (그룹 분류 여지를 위해 10개 후보)
   const vector = await embedText(prompt, 'RETRIEVAL_QUERY')
   const { data: matches, error } = await client.rpc('match_posts', {
     query_embedding: vector,
-    match_count: 8,
+    match_count: 10,
     match_threshold: 0.0,
   })
   if (error) throw error
-  if (!matches?.length) return []
+  if (!matches?.length) {
+    return { primary: [], related: [], primaryIntro: '', relatedIntro: '' }
+  }
 
   // 2) 작성자/태그 보강
   const ids = matches.map((m: any) => m.id)
@@ -90,17 +92,18 @@ async function recommendProjects(client: any, prompt: string) {
     .in('id', ids)
   const detailMap = new Map((details ?? []).map((d: any) => [d.id, d]))
 
-  // 3) AI 추천 이유 — 한 번의 호출로 묶어서
-  const reasons = await generateReasons(
+  // 3) Gemini 분류 + 이유 + 인트로 (단일 호출)
+  const classification = await classifyAndReason(
     prompt,
     matches.map((m: any) => ({
       label: m.title,
+      category: m.category,
+      subCategory: m.sub_category,
       text: (m.content ?? '').slice(0, 200),
     })),
-    'project',
   )
 
-  return matches.map((m: any, i: number) => {
+  const toCard = (m: any, reason: string) => {
     const det: any = detailMap.get(m.id)
     return {
       id: m.id,
@@ -112,7 +115,7 @@ async function recommendProjects(client: any, prompt: string) {
       currentMemberCount: m.current_member_count,
       status: m.status,
       similarity: m.similarity,
-      reason: reasons[i] ?? '',
+      reason,
       author: det?.author
         ? {
             id: det.author.id,
@@ -123,7 +126,84 @@ async function recommendProjects(client: any, prompt: string) {
         : null,
       tags: ((det?.post_tags ?? []) as any[]).map((pt) => pt.tag).filter(Boolean),
     }
-  })
+  }
+
+  const primary: any[] = []
+  const related: any[] = []
+  for (const item of classification.items) {
+    const m = matches[item.index - 1]
+    if (!m) continue
+    const card = toCard(m, item.reason ?? '')
+    if (item.role === 'primary') primary.push(card)
+    else if (item.role === 'related') related.push(card)
+  }
+
+  return {
+    primary,
+    related,
+    primaryIntro: classification.primary_intro || '',
+    relatedIntro: classification.related_intro || '',
+  }
+}
+
+async function classifyAndReason(
+  userPrompt: string,
+  candidates: { label: string; category: string; subCategory: string; text: string }[],
+): Promise<{
+  primary_intro: string
+  related_intro: string
+  items: { index: number; role: 'primary' | 'related'; reason: string }[]
+}> {
+  if (candidates.length === 0) {
+    return { primary_intro: '', related_intro: '', items: [] }
+  }
+  const numbered = candidates
+    .map((c, i) => `${i + 1}. [${c.category} / ${c.subCategory}] ${c.label}\n   ${c.text}`)
+    .join('\n\n')
+
+  const prompt = `너는 매칭 플랫폼의 추천 큐레이터야.
+사용자가 다음과 같이 요청했어: "${userPrompt}"
+
+아래 ${candidates.length}개의 게시글 후보를 두 그룹으로 분류해줘:
+- "primary": 사용자 요청에 직접 부합 (핵심 키워드/주제/제약 모두 매칭)
+- "related": 의미적으로 연관되지만 직접 일치는 아닌 인접 추천 (다른 세부 카테고리이지만 관심사가 겹칠 만한 것)
+
+후보:
+${numbered}
+
+규칙:
+- primary 3~5개 권장. 명확히 부합하는 후보가 적으면 적게.
+- 관련성이 거의 없는 후보는 items에서 제외.
+- 각 후보별 추천 이유를 한 줄(45자 이내) 한국어로.
+- 두 그룹별 인트로 멘트(60자 이내):
+  - primary_intro: 주 추천 도입 (예: "토익 700~800점 목표에 맞춰 강남권 스터디들을 골랐어요")
+  - related_intro: 인접 추천 도입 (예: "어학 자격증 쪽에 관심 있으시면 토플·회화 스터디도 추천드려요")
+- related가 비면 related_intro도 빈 문자열로.
+
+JSON으로만 응답:
+{
+  "primary_intro": "...",
+  "related_intro": "...",
+  "items": [
+    {"index": 1, "role": "primary", "reason": "..."},
+    {"index": 2, "role": "related", "reason": "..."}
+  ]
+}`
+
+  try {
+    return await generateJSON<{
+      primary_intro: string
+      related_intro: string
+      items: { index: number; role: 'primary' | 'related'; reason: string }[]
+    }>(prompt, { temperature: 0.5 })
+  } catch (e) {
+    console.warn('classifyAndReason failed, falling back to all-primary', e)
+    return {
+      primary_intro: '검색 결과입니다.',
+      related_intro: '',
+      items: candidates.map((_, i) => ({ index: i + 1, role: 'primary' as const, reason: '' })),
+    }
+  }
 }
 
 async function recommendMembers(client: any, prompt: string, post: any) {
