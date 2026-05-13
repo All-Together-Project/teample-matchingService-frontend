@@ -5,8 +5,8 @@ import {
   postApi,
   recommendApi,
   type RecommendedProject,
-  type RecommendedMember,
   type RecommendProjectsResult,
+  type RecommendMembersResult,
 } from '@/api'
 import { TempBadge, StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
@@ -205,13 +205,21 @@ function ProjectCard({ r }: { r: RecommendedProject }) {
   )
 }
 
-function MemberResultsView({ results }: { results: RecommendedMember[] }) {
-  if (results.length === 0) {
+function MemberResultsView({ results }: { results: RecommendMembersResult }) {
+  const { intro, results: members } = results
+  if (members.length === 0) {
     return <p className={styles.empty}>조건에 맞는 사용자를 찾지 못했어요.</p>
   }
   return (
-    <div className={styles.memberGrid}>
-      {results.map(m => (
+    <div className={styles.resultSection}>
+      {intro && (
+        <header className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>👥 추천 후보 분석</h3>
+          <p className={styles.sectionIntro}>{intro}</p>
+        </header>
+      )}
+      <div className={styles.memberGrid}>
+      {members.map(m => (
         <Link to={`/users/${m.id}`} key={m.id} className={styles.memberCard}>
           <div className={styles.memberHead}>
             <div className={styles.memberAvatar}>
@@ -239,6 +247,7 @@ function MemberResultsView({ results }: { results: RecommendedMember[] }) {
           </div>
         </Link>
       ))}
+      </div>
     </div>
   )
 }

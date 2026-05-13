@@ -679,6 +679,11 @@ export interface RecommendProjectsResult {
   relatedIntro: string
 }
 
+export interface RecommendMembersResult {
+  intro: string
+  results: RecommendedMember[]
+}
+
 export const recommendApi = {
   recommendProjects: async (prompt: string): Promise<RecommendProjectsResult> => {
     const { data, error } = await supabase.functions.invoke('ai-recommend', {
@@ -693,12 +698,15 @@ export const recommendApi = {
     }
   },
 
-  recommendMembers: async (postId: number, prompt: string): Promise<RecommendedMember[]> => {
+  recommendMembers: async (postId: number, prompt: string): Promise<RecommendMembersResult> => {
     const { data, error } = await supabase.functions.invoke('ai-recommend', {
       body: { mode: 'member', prompt, postId },
     })
     if (error) throw error
-    return (data?.results ?? []) as RecommendedMember[]
+    return {
+      intro: data?.intro ?? '',
+      results: (data?.results ?? []) as RecommendedMember[],
+    }
   },
 }
 

@@ -21,6 +21,13 @@ interface Body {
   postId?: number
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  RECRUITING: '모집중',
+  COMPLETE:   '모집완료',
+  FINISHED:   '종료',
+  GENERAL:    '일반',
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -58,8 +65,8 @@ Deno.serve(async (req) => {
         .single()
       if (!post) return jsonResponse({ error: 'post not found' }, 404)
       if (post.author_id !== user.id) return jsonResponse({ error: 'forbidden — leader only' }, 403)
-      const results = await recommendMembers(admin, prompt.trim(), post)
-      return jsonResponse({ results })
+      const memberResult = await recommendMembers(admin, prompt.trim(), post)
+      return jsonResponse(memberResult)
     }
   } catch (e) {
     console.error('ai-recommend error', e)
@@ -92,13 +99,14 @@ async function recommendProjects(client: any, prompt: string) {
     .in('id', ids)
   const detailMap = new Map((details ?? []).map((d: any) => [d.id, d]))
 
-  // 3) Gemini 분류 + 이유 + 인트로 (단일 호출)
+  // 3) Gemini 분류 + 이유 + 인트로 (단일 호출). 상태도 한국어 라벨로 같이 전달.
   const classification = await classifyAndReason(
     prompt,
     matches.map((m: any) => ({
       label: m.title,
       category: m.category,
       subCategory: m.sub_category,
+      statusLabel: STATUS_LABEL[m.status] ?? m.status,
       text: (m.content ?? '').slice(0, 200),
     })),
   )
@@ -148,7 +156,7 @@ async function recommendProjects(client: any, prompt: string) {
 
 async function classifyAndReason(
   userPrompt: string,
-  candidates: { label: string; category: string; subCategory: string; text: string }[],
+  candidates: { label: string; category: string; subCategory: string; statusLabel: string; text: string }[],
 ): Promise<{
   primary_intro: string
   related_intro: string
@@ -158,11 +166,17 @@ async function classifyAndReason(
     return { primary_intro: '', related_intro: '', items: [] }
   }
   const numbered = candidates
-    .map((c, i) => `${i + 1}. [${c.category} / ${c.subCategory}] ${c.label}\n   ${c.text}`)
+    .map((c, i) => `${i + 1}. [${c.category} / ${c.subCategory} / ${c.statusLabel}] ${c.label}\n   ${c.text}`)
     .join('\n\n')
 
   const prompt = `너는 매칭 플랫폼의 추천 큐레이터야.
 사용자가 다음과 같이 요청했어: "${userPrompt}"
+
+게시글 상태 라벨 안내:
+- 모집중: 신규 멤버 합류 가능
+- 모집완료: 정원은 찼지만 활동 진행 중 (구경/벤치마킹용으로는 볼 수 있음)
+- 종료: 이미 마친 활동 (후기/참고용)
+- 일반: 커뮤니티 글 (모집 개념 없음, Q&A·후기·정보공유 등)
 
 아래 ${candidates.length}개의 게시글 후보를 두 그룹으로 분류해줘:
 - "primary": 사용자 요청에 직접 부합 (핵심 키워드/주제/제약 모두 매칭)
@@ -172,9 +186,13 @@ async function classifyAndReason(
 ${numbered}
 
 규칙:
+- 사용자가 상태에 대해 명시적 의도를 드러내면 그 의도를 최우선 반영:
+  - "모집중인 것만", "지금 들어갈 수 있는" → 모집완료/종료 후보는 items에서 제외
+  - "끝난 프로젝트 보고 싶어", "후기 참고용" → 종료 후보를 primary에 포함
+  - 명시 없음 → 모집중을 primary로, 모집완료/종료는 인접 추천(related)으로 후순위 처리
 - primary 3~5개 권장. 명확히 부합하는 후보가 적으면 적게.
 - 관련성이 거의 없는 후보는 items에서 제외.
-- 각 후보별 추천 이유를 한 줄(45자 이내) 한국어로.
+- 각 후보별 추천 이유를 한 줄(45자 이내) 한국어로. 모집완료/종료 후보면 이유에 그 상태도 자연스럽게 언급 (예: "이미 종료된 시즌이지만 후기 참고용으로 좋음").
 - 두 그룹별 인트로 멘트(60자 이내):
   - primary_intro: 주 추천 도입 (예: "토익 700~800점 목표에 맞춰 강남권 스터디들을 골랐어요")
   - related_intro: 인접 추천 도입 (예: "어학 자격증 쪽에 관심 있으시면 토플·회화 스터디도 추천드려요")
@@ -255,7 +273,7 @@ async function recommendMembers(client: any, prompt: string, post: any) {
     )
     .slice(0, 8)
 
-  if (sorted.length === 0) return []
+  if (sorted.length === 0) return { intro: '', results: [] }
 
   // 5) 각 사용자 태그
   const userIds = sorted.map((c) => c.user.id)
@@ -271,24 +289,16 @@ async function recommendMembers(client: any, prompt: string, post: any) {
     tagByUser.set(row.user_id, arr)
   }
 
-  // 6) AI 이유
-  const contextPrompt =
-    `프로젝트: "${post.title}"\n프로젝트 내용 요약: ${(post.content ?? '').slice(0, 300)}\n` +
-    `리더 요청: ${prompt}`
+  // 6) AI 분석 (인트로 + 풍부한 이유)
+  const analysis = await generateMemberAnalysis(post, prompt, sorted.map((c) => ({
+    nickname: c.user.nickname,
+    introduction: c.user.introduction,
+    temperature: c.user.temperature,
+    tagOverlap: c.overlap,
+    tags: (tagByUser.get(c.user.id) ?? []).map((t: any) => t.name),
+  })))
 
-  const reasons = await generateReasons(
-    contextPrompt,
-    sorted.map((c) => ({
-      label: c.user.nickname,
-      text:
-        `자기소개: ${c.user.introduction || '없음'} / ` +
-        `매너온도: ${c.user.temperature ?? 36.5} / ` +
-        `태그: ${(tagByUser.get(c.user.id) ?? []).map((t: any) => t.name).join(', ')}`,
-    })),
-    'member',
-  )
-
-  return sorted.map((c, i) => ({
+  const results = sorted.map((c, i) => ({
     id: c.user.id,
     nickname: c.user.nickname,
     profileUrl: c.user.profile_url,
@@ -296,46 +306,90 @@ async function recommendMembers(client: any, prompt: string, post: any) {
     introduction: c.user.introduction,
     tagOverlap: c.overlap,
     tags: tagByUser.get(c.user.id) ?? [],
-    reason: reasons[i] ?? '',
+    reason: analysis.reasons[i] ?? '',
   }))
+
+  return { intro: analysis.intro, results }
 }
 
-async function generateReasons(
-  userPrompt: string,
-  candidates: { label: string; text: string }[],
-  mode: 'project' | 'member',
-): Promise<string[]> {
-  if (candidates.length === 0) return []
+async function generateMemberAnalysis(
+  post: { title: string; content: string },
+  leaderPrompt: string,
+  candidates: {
+    nickname: string
+    introduction: string | null
+    temperature: number | null
+    tagOverlap: number
+    tags: string[]
+  }[],
+): Promise<{ intro: string; reasons: string[] }> {
+  if (candidates.length === 0) return { intro: '', reasons: [] }
 
-  const target = mode === 'project' ? '프로젝트' : '사용자'
   const numbered = candidates
-    .map((c, i) => `${i + 1}. ${c.label}\n   ${c.text}`)
+    .map((c, i) =>
+      `${i + 1}. ${c.nickname}\n` +
+      `   자기소개: ${c.introduction || '(작성 안 함)'}\n` +
+      `   매너온도: ${c.temperature ?? 36.5}°C ` +
+        `(${interpretTemperature(c.temperature ?? 36.5)})\n` +
+      `   태그: ${c.tags.length > 0 ? c.tags.join(', ') : '없음'}\n` +
+      `   게시글 태그와 겹치는 개수: ${c.tagOverlap}개`,
+    )
     .join('\n\n')
 
-  const prompt = `너는 매칭 플랫폼의 추천 이유 생성기야.
-사용자가 다음과 같이 요청했어: "${userPrompt}"
+  const prompt = `너는 매칭 플랫폼의 팀원 추천 큐레이터야.
 
-아래 ${candidates.length}개의 ${target} 후보 각각에 대해 "왜 적합한지" 짧은 이유를 한 줄(45자 이내, 한국어)로 만들어줘.
+프로젝트 정보:
+- 제목: "${post.title}"
+- 내용 요약: ${(post.content ?? '').slice(0, 300)}
 
-후보:
+리더 요청:
+"${leaderPrompt}"
+
+후보 ${candidates.length}명:
 ${numbered}
 
+다음을 생성해줘:
+1. "intro" — 후보 풀 전체에 대한 한 줄(80자 이내) 분석 요약.
+   예시: "태그 겹침이 많고 매너온도가 높은 베테랑 위주로 골라봤어요. 모두 리더 요청과 직접 연관된 분들입니다."
+2. "reasons" — 각 후보별 추천 이유. 후보 순서대로 같은 개수의 배열.
+   각 이유는 한국어 2~3문장(120~200자):
+   - 첫 문장: 후보의 핵심 강점·매너온도·태그 등 구체 근거 인용
+   - 두 번째 문장: 리더 요청·프로젝트와 어떻게 매칭되는지
+   - (선택) 세 번째 문장: 함께 할 때 시너지 포인트 또는 가벼운 주의점
+   예시: "자기소개에 '커뮤니케이션 중시'를 명시했고 매너온도 44.1°C로 신뢰도가 높은 분이에요. 'React' '프론트엔드' 태그가 겹쳐 프로젝트 핵심 기술 스택과 잘 맞습니다. 진지한 분위기 선호 후보라 빠른 일정 협업에 잘 맞을 듯해요."
+
 규칙:
-- 각 후보의 특징과 사용자 요청을 연결
-- 자연스러운 문장 (예: "리액트 경험이 있고 빠른 일정에 맞춰 작업 가능해서 추천")
-- 후보 순서대로 동일한 개수의 reasons 배열을 반환
-- 과장/추측은 피하고 후보 정보 안에서만
+- 후보 정보에 없는 사실을 만들어내지 말 것 (예: 경력 연차, 특정 회사 등)
+- 매너온도 36.5°C(기본값)인 후보는 "신규 사용자"로 부드럽게 언급, 단점으로 강조하지 말 것
+- 태그 겹침이 0인 후보는 다른 강점(자기소개·매너온도)으로 추천 이유를 풀 것
 
 JSON으로만 응답:
-{"reasons": ["...", "...", ...]}`
+{
+  "intro": "...",
+  "reasons": ["...", "...", ...]
+}`
 
   try {
-    const result = await generateJSON<{ reasons: string[] }>(prompt, { temperature: 0.5 })
-    return result.reasons ?? []
+    const result = await generateJSON<{ intro: string; reasons: string[] }>(prompt, {
+      temperature: 0.6,
+    })
+    return {
+      intro: result.intro || '',
+      reasons: result.reasons ?? candidates.map(() => ''),
+    }
   } catch (e) {
-    console.warn('generateReasons failed', e)
-    return candidates.map(() => '')
+    console.warn('generateMemberAnalysis failed', e)
+    return { intro: '', reasons: candidates.map(() => '') }
   }
+}
+
+function interpretTemperature(t: number): string {
+  if (t >= 45) return '인기 사용자'
+  if (t >= 42) return '베테랑'
+  if (t >= 39) return '활동 우수'
+  if (t >= 37) return '활동 양호'
+  if (t > 36.5) return '신규에서 활동 시작'
+  return '신규 사용자'
 }
 
 function jsonResponse(body: unknown, status = 200) {
