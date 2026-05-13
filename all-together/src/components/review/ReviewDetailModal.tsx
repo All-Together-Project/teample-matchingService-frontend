@@ -1,8 +1,17 @@
-import type { Review } from '@/types'
 import styles from './ReviewDetailModal.module.css'
 
+// 사용자 리뷰(Review)와 프로젝트 리뷰(ProjectReview) 양쪽을 모두 받기 위한 구조적 타입
+export interface ReviewDetailItem {
+  id: number
+  evaluator: { id: string; nickname: string }
+  postTitle?: string
+  comment: string
+  scores: Array<{ itemId: number; itemName: string; score: number }>
+  createdAt: string
+}
+
 interface Props {
-  review: Review
+  review: ReviewDetailItem
   onClose: () => void
 }
 
@@ -25,7 +34,7 @@ export default function ReviewDetailModal({ review, onClose }: Props) {
             <div className={styles.avatar}>{review.evaluator.nickname.charAt(0)}</div>
             <div className={styles.metaText}>
               <p className={styles.evaluator}>{review.evaluator.nickname}</p>
-              <p className={styles.post}>{review.postTitle}</p>
+              {review.postTitle && <p className={styles.post}>{review.postTitle}</p>}
               <p className={styles.date}>{new Date(review.createdAt).toLocaleDateString('ko-KR')}</p>
             </div>
             <div className={styles.avgBadge}>
