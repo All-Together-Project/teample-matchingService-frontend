@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { projectReviewApi, postApi } from '@/api'
@@ -128,14 +129,27 @@ export default function ProjectReviewSection({ post }: Props) {
               })}
             >
               <div className={styles.reviewHeader}>
-                <div className={styles.reviewerAvatar}>
-                  {r.evaluator.profileUrl
-                    ? <img src={r.evaluator.profileUrl} alt={r.evaluator.nickname} />
-                    : <span>{r.evaluator.nickname.charAt(0)}</span>
-                  }
-                </div>
+                <Link
+                  to={`/users/${r.evaluator.id}`}
+                  className={styles.reviewerAvatarLink}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`${r.evaluator.nickname} 프로필로 이동`}
+                >
+                  <div className={styles.reviewerAvatar}>
+                    {r.evaluator.profileUrl
+                      ? <img src={r.evaluator.profileUrl} alt={r.evaluator.nickname} />
+                      : <span>{r.evaluator.nickname.charAt(0)}</span>
+                    }
+                  </div>
+                </Link>
                 <div className={styles.reviewerInfo}>
-                  <p className={styles.reviewerName}>{r.evaluator.nickname}</p>
+                  <Link
+                    to={`/users/${r.evaluator.id}`}
+                    className={styles.reviewerNameLink}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className={styles.reviewerName}>{r.evaluator.nickname}</p>
+                  </Link>
                   {r.evaluator.temperature != null && <TempBadge value={r.evaluator.temperature} />}
                 </div>
                 <span className={styles.reviewDate}>
