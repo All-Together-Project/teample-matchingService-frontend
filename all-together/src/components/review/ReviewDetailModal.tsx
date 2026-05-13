@@ -1,12 +1,29 @@
-import type { Review } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 import styles from './ReviewDetailModal.module.css'
 
-interface Props {
-  review: Review
-  onClose: () => void
+// 사용자 리뷰(Review)와 프로젝트 리뷰(ProjectReview) 양쪽을 모두 받기 위한 구조적 타입
+export interface ReviewDetailItem {
+  id: number
+  evaluator: { id: string; nickname: string }
+  postTitle?: string
+  comment: string
+  scores: Array<{ itemId: number; itemName: string; score: number }>
+  createdAt: string
 }
 
-export default function ReviewDetailModal({ review, onClose }: Props) {
+interface Props {
+  review: ReviewDetailItem
+  onClose: () => void
+  // true면 본인이 쓴 게 아닐 경우 평가자를 "함께한 멤버"로 표시. 기본 true.
+  anonymize?: boolean
+}
+
+export default function ReviewDetailModal({ review, onClose, anonymize = true }: Props) {
+  const { user: me } = useAuthStore()
+  const isMine = me?.id === review.evaluator.id
+  const showAsAnonymous = anonymize && !isMine
+  const displayName = showAsAnonymous ? '함께한 멤버' : review.evaluator.nickname
+  const displayInitial = showAsAnonymous ? '?' : review.evaluator.nickname.charAt(0)
   const avg =
     review.scores.length > 0
       ? review.scores.reduce((s, x) => s + x.score, 0) / review.scores.length
@@ -22,10 +39,15 @@ export default function ReviewDetailModal({ review, onClose }: Props) {
 
         <div className={styles.body}>
           <div className={styles.meta}>
-            <div className={styles.avatar}>{review.evaluator.nickname.charAt(0)}</div>
+            <div className={`${styles.avatar} ${showAsAnonymous ? styles.avatarAnon : ''}`}>
+              {displayInitial}
+            </div>
             <div className={styles.metaText}>
-              <p className={styles.evaluator}>{review.evaluator.nickname}</p>
-              <p className={styles.post}>{review.postTitle}</p>
+              <p className={styles.evaluator}>
+                {displayName}
+                {isMine && anonymize && <span className={styles.mineTag}>(내가 작성)</span>}
+              </p>
+              {review.postTitle && <p className={styles.post}>{review.postTitle}</p>}
               <p className={styles.date}>{new Date(review.createdAt).toLocaleDateString('ko-KR')}</p>
             </div>
             <div className={styles.avgBadge}>

@@ -68,7 +68,7 @@
 .reviewCard {
   display: block; width: 100%;
   border-top: 1px solid var(--color-border-light);
-  padding: 12px 0;
+  padding: 9px 0;
   background: transparent; border-left: none; border-right: none; border-bottom: none;
   cursor: pointer;
   font-family: inherit; text-align: left;
@@ -76,18 +76,14 @@
 }
 .reviewCard:hover { background: var(--color-bg); }
 .reviewCard:first-child { border-top: none; padding-top: 0; }
-.reviewTop { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.reviewerAvatar { width: 30px; height: 30px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.reviewerName { font-size: 13px; font-weight: 500; }
+.reviewTop { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.reviewerAvatar { width: 24px; height: 24px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.reviewerAvatarAnon { background: var(--color-border-light); color: var(--color-text-hint); }
+.reviewerName { font-size: 12px; font-weight: 500; }
+.mineTag { margin-left: 4px; font-size: 10px; color: var(--color-primary); font-weight: 500; }
 .reviewProject { font-size: 11px; color: var(--color-text-secondary); }
-.reviewDate { font-size: 12px; color: var(--color-text-secondary); margin-left: auto; }
-.comment { font-size: 13px; color: var(--color-text-secondary); font-style: italic; line-height: 1.6; padding-left: 40px; }
-.viewMore {
-  display: inline-block;
-  margin-top: 6px; padding-left: 40px;
-  font-size: 11px; color: var(--color-primary);
-  font-weight: 500;
-}
+.reviewDate { font-size: 11px; color: var(--color-text-secondary); margin-left: auto; }
+.comment { font-size: 12px; color: var(--color-text-secondary); font-style: italic; line-height: 1.5; padding-left: 32px; margin-top: 2px; }
 
 /* sidebar */
 .sidebar {}

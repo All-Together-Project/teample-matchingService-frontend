@@ -94,31 +94,59 @@
 .empty { font-size: 14px; color: var(--color-text-hint); padding: 1.5rem 0; text-align: center; }
 .reviewHint { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; }
 
-.memberList { display: flex; flex-direction: column; gap: 8px; }
-.memberRow {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
+.memberGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
 }
-.memberLeft { display: flex; align-items: center; gap: 12px; }
+
+.memberCard {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  width: 100%;
+  transition: background 0.12s, border-color 0.12s;
+}
+.memberCard:hover { background: var(--color-primary-light); border-color: var(--color-primary-border); }
+
+.memberAvatarLink {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: transform 0.12s;
+}
+.memberAvatarLink:hover { transform: scale(1.05); }
+
 .memberAvatar {
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%;
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
-  font-size: 14px; font-weight: 600;
+  font-size: 13px; font-weight: 600;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  overflow: hidden;
 }
-.memberAvatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.memberName { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.memberAvatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.memberMeta { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.memberName {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .reviewDone {
-  font-size: 13px; color: var(--color-success, #16a34a);
+  font-size: 11px; color: var(--color-success, #16a34a);
   background: #dcfce7;
-  padding: 4px 12px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
   font-weight: 500;
+  flex-shrink: 0;
 }
 .recommendItem:hover .recName { color: var(--color-primary); }
 .recAvatar { width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary-light); color: var(--color-primary-dark); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

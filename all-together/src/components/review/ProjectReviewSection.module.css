@@ -66,44 +66,55 @@
 .reviewCard {
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  display: flex; flex-direction: column; gap: 10px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--color-surface);
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.reviewCard:hover {
+  border-color: var(--color-primary-border);
+  background: var(--color-bg);
 }
 
-.reviewHeader { display: flex; align-items: center; gap: 10px; }
+.reviewHeader { display: flex; align-items: center; gap: 8px; }
 .reviewerAvatar {
-  width: 32px; height: 32px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
-  font-size: 12px; font-weight: 600;
+  font-size: 11px; font-weight: 600;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; flex-shrink: 0;
 }
 .reviewerAvatar img { width: 100%; height: 100%; object-fit: cover; }
-.reviewerInfo { display: flex; align-items: center; gap: 6px; flex: 1; }
-.reviewerName { font-size: 13px; font-weight: 600; }
-.reviewDate { font-size: 11px; color: var(--color-text-hint); }
+.reviewerInfo { display: flex; align-items: center; gap: 5px; flex: 1; }
+.reviewerName { font-size: 12px; font-weight: 600; }
+.reviewDate { font-size: 10px; color: var(--color-text-hint); }
 
-.scores { display: flex; flex-direction: column; gap: 4px; }
-.scoreItem { display: flex; align-items: center; gap: 8px; }
+.scores { display: flex; flex-direction: column; gap: 3px; }
+.scoreItem { display: flex; align-items: center; gap: 6px; }
 .scoreLabel {
-  font-size: 12px; color: var(--color-text-secondary);
-  width: 110px; flex-shrink: 0;
+  font-size: 11px; color: var(--color-text-secondary);
+  width: 100px; flex-shrink: 0;
 }
 .starRow { display: flex; gap: 1px; }
-.star { font-size: 13px; color: var(--color-border); }
+.star { font-size: 11px; color: var(--color-border); }
 .starOn { color: #FFB400; }
 .scoreValue {
-  font-size: 12px; font-weight: 600;
+  font-size: 11px; font-weight: 600;
   margin-left: auto;
   color: var(--color-text-secondary);
 }
 
 .reviewComment {
-  font-size: 13px; color: var(--color-text-primary);
+  font-size: 12px; color: var(--color-text-primary);
   line-height: 1.5;
-  padding: 10px 12px;
+  padding: 7px 10px;
   background: var(--color-bg);
   border-radius: var(--radius-md);
   white-space: pre-wrap;

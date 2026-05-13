@@ -10,6 +10,7 @@ import { TempBadge, StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
 import Pagination from '@/components/common/Pagination'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import ReviewDetailModal, { type ReviewDetailItem } from '@/components/review/ReviewDetailModal'
 import MyApplications from '@/components/matching/MyApplications'
 import ReceivedApplications from '@/components/matching/ReceivedApplications'
 import AIRecommendPanel from '@/components/recommend/AIRecommendPanel'
@@ -47,6 +48,7 @@ export default function MyPage() {
   const [projectPage,  setProjectPage]  = useState(0)
   const [personalPage, setPersonalPage] = useState(0)
   const [leaderPage,   setLeaderPage]   = useState(0)
+  const [reviewDetail, setReviewDetail] = useState<ReviewDetailItem | null>(null)
 
   // 서브탭 변경 시 해당 페이지 리셋
   useEffect(() => { setProjectPage(0) }, [projectSubTab])
@@ -315,7 +317,7 @@ export default function MyPage() {
                 <>
                   <div className={styles.compactReviewList}>
                     {sliceFor(reviews, personalPage, REVIEWS_PER_PAGE).map(r => (
-                      <CompactPersonalReviewCard key={r.id} review={r} />
+                      <CompactPersonalReviewCard key={r.id} review={r} onClick={() => setReviewDetail(r)} />
                     ))}
                   </div>
                   <Pagination
@@ -358,7 +360,7 @@ export default function MyPage() {
                 <>
                   <div className={styles.compactReviewList}>
                     {sliceFor(leaderReviews, leaderPage, REVIEWS_PER_PAGE).map(r => (
-                      <CompactLeaderReviewCard key={r.id} review={r} />
+                      <CompactLeaderReviewCard key={r.id} review={r} onClick={() => setReviewDetail(r)} />
                     ))}
                   </div>
                   <Pagination
@@ -372,6 +374,10 @@ export default function MyPage() {
             </>
           )}
         </div>
+      )}
+
+      {reviewDetail && (
+        <ReviewDetailModal review={reviewDetail} onClose={() => setReviewDetail(null)} />
       )}
     </div>
   )
@@ -425,16 +431,24 @@ function ProjectRowCard({ post }: { post: Post }) {
   )
 }
 
-function CompactPersonalReviewCard({ review }: { review: Review }) {
+function CompactPersonalReviewCard({ review, onClick }: { review: Review; onClick: () => void }) {
+  const { user: me } = useAuthStore()
+  const isMine = me?.id === review.evaluator.id
+  const showAsAnon = !isMine
   const avg =
     review.scores.length > 0
       ? review.scores.reduce((s, x) => s + x.score, 0) / review.scores.length
       : 0
   return (
-    <div className={styles.compactCard}>
+    <button type="button" className={styles.compactCard} onClick={onClick}>
       <div className={styles.compactHead}>
-        <div className={styles.compactAvatar}>{review.evaluator.nickname.charAt(0)}</div>
-        <span className={styles.compactName}>{review.evaluator.nickname}</span>
+        <div className={`${styles.compactAvatar} ${showAsAnon ? styles.compactAvatarAnon : ''}`}>
+          {showAsAnon ? '?' : review.evaluator.nickname.charAt(0)}
+        </div>
+        <span className={styles.compactName}>
+          {showAsAnon ? '함께한 멤버' : review.evaluator.nickname}
+          {isMine && <span className={styles.compactMineTag}>(내가 작성)</span>}
+        </span>
         <span className={styles.compactDot}>·</span>
         <span className={styles.compactProject}>{review.postTitle}</span>
         <span className={styles.compactStars}>★ {avg.toFixed(1)}</span>
@@ -452,17 +466,17 @@ function CompactPersonalReviewCard({ review }: { review: Review }) {
       {review.comment && (
         <p className={styles.compactComment}>"{review.comment}"</p>
       )}
-    </div>
+    </button>
   )
 }
 
-function CompactLeaderReviewCard({ review }: { review: ProjectReview }) {
+function CompactLeaderReviewCard({ review, onClick }: { review: ProjectReview; onClick: () => void }) {
   const avg =
     review.scores.length > 0
       ? review.scores.reduce((s, x) => s + x.score, 0) / review.scores.length
       : 0
   return (
-    <div className={styles.compactCard}>
+    <button type="button" className={styles.compactCard} onClick={onClick}>
       <div className={styles.compactHead}>
         <div className={styles.compactAvatar}>{review.evaluator.nickname.charAt(0)}</div>
         <span className={styles.compactName}>{review.evaluator.nickname}</span>
@@ -486,6 +500,6 @@ function CompactLeaderReviewCard({ review }: { review: ProjectReview }) {
       {review.comment && (
         <p className={styles.compactComment}>"{review.comment}"</p>
       )}
-    </div>
+    </button>
   )
 }

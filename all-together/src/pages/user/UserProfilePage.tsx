@@ -121,26 +121,35 @@ export default function UserProfilePage() {
 
           <div className={styles.section}>
             <h2>받은 리뷰 ({reviews?.length ?? 0})</h2>
-            {reviews?.map(r => (
-              <button
-                key={r.id}
-                type="button"
-                className={styles.reviewCard}
-                onClick={() => setReviewDetail(r)}
-                aria-label={`${r.evaluator.nickname}님이 ${r.postTitle}에 남긴 리뷰 상세보기`}
-              >
-                <div className={styles.reviewTop}>
-                  <div className={styles.reviewerAvatar}>{r.evaluator.nickname.charAt(0)}</div>
-                  <div>
-                    <p className={styles.reviewerName}>{r.evaluator.nickname}</p>
-                    <p className={styles.reviewProject}>{r.postTitle}</p>
+            {reviews?.map(r => {
+              const isMine = me?.id === r.evaluator.id
+              const showAsAnon = !isMine
+              const name = showAsAnon ? '함께한 멤버' : r.evaluator.nickname
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={styles.reviewCard}
+                  onClick={() => setReviewDetail(r)}
+                  aria-label={`${r.postTitle}에 남긴 리뷰 상세보기`}
+                >
+                  <div className={styles.reviewTop}>
+                    <div className={`${styles.reviewerAvatar} ${showAsAnon ? styles.reviewerAvatarAnon : ''}`}>
+                      {showAsAnon ? '?' : r.evaluator.nickname.charAt(0)}
+                    </div>
+                    <div>
+                      <p className={styles.reviewerName}>
+                        {name}
+                        {isMine && <span className={styles.mineTag}>(내가 작성)</span>}
+                      </p>
+                      <p className={styles.reviewProject}>{r.postTitle}</p>
+                    </div>
+                    <span className={styles.reviewDate}>{new Date(r.createdAt).toLocaleDateString('ko-KR')}</span>
                   </div>
-                  <span className={styles.reviewDate}>{new Date(r.createdAt).toLocaleDateString('ko-KR')}</span>
-                </div>
-                {r.comment && <p className={styles.comment}>"{r.comment}"</p>}
-                <span className={styles.viewMore}>자세히 보기 →</span>
-              </button>
-            ))}
+                  {r.comment && <p className={styles.comment}>"{r.comment}"</p>}
+                </button>
+              )
+            })}
             {!reviews?.length && <p className={styles.empty}>아직 받은 리뷰가 없습니다</p>}
           </div>
         </div>

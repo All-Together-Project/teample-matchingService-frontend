@@ -9,6 +9,7 @@ import Button from '@/components/common/Button'
 import CommentSection from '@/components/project/CommentSection'
 import ApplyModal from '@/components/matching/ApplyModal'
 import ReviewModal from '@/components/review/ReviewModal'
+import MemberReviewsModal from '@/components/review/MemberReviewsModal'
 import ProjectReviewSection from '@/components/review/ProjectReviewSection'
 import type { Post, User } from '@/types'
 import styles from './ProjectDetailPage.module.css'
@@ -270,6 +271,7 @@ function ReviewSection({ post }: { post: Post }) {
   const { user } = useAuthStore()
   const qc = useQueryClient()
   const [target, setTarget] = useState<Pick<User, 'id' | 'nickname' | 'profileUrl' | 'temperature'> | null>(null)
+  const [viewing, setViewing] = useState<Pick<User, 'id' | 'nickname' | 'profileUrl' | 'temperature'> | null>(null)
 
   const { data: members = [] } = useQuery({
     queryKey: ['members', post.id],
@@ -278,62 +280,86 @@ function ReviewSection({ post }: { post: Post }) {
   const { data: myReviews = [] } = useQuery({
     queryKey: ['my-reviews', post.id],
     queryFn: () => reviewApi.getMyReviewsForPost(post.id),
+    enabled: !!user,
   })
 
-  if (!user) return null
-
-  // 작성자 + 멤버 합쳐서 dedup, 본인 제외
+  // 작성자 + 멤버 합쳐서 dedup. 본인은 그리드에서 제외 (자기 자신은 리뷰 대상 X).
   const candidates = new Map<string, Pick<User, 'id' | 'nickname' | 'profileUrl' | 'temperature'>>()
-  if (post.author && post.author.id !== user.id) {
+  if (post.author && post.author.id !== user?.id) {
     candidates.set(post.author.id, post.author)
   }
   for (const m of members as any[]) {
     const u = m.user
-    if (!u || u.id === user.id) continue
+    if (!u || u.id === user?.id) continue
     candidates.set(u.id, u)
   }
-
-  const reviewedIds = new Set(myReviews.map(r => r.targetId))
   const list = Array.from(candidates.values())
 
-  // 본인이 멤버이거나 작성자여야 리뷰 가능
-  const isAuthor = post.author?.id === user.id
-  const isMember = (members as any[]).some(m => m.userId === user.id)
-  if (!isAuthor && !isMember) return null
+  const isAuthor = post.author?.id === user?.id
+  const isMember = !!user && (members as any[]).some(m => m.userId === user.id)
+  const canWriteReview = !!user && (isAuthor || isMember)
+  const reviewedIds = new Set(myReviews.map(r => r.targetId))
+
+  if (list.length === 0) return null
 
   return (
     <div className={styles.section}>
-      <h2>함께한 멤버 리뷰</h2>
-      <p className={styles.reviewHint}>각 멤버에게 1번씩 리뷰를 남길 수 있습니다.</p>
-      {list.length === 0 ? (
-        <p className={styles.empty}>리뷰할 멤버가 없습니다.</p>
-      ) : (
-        <div className={styles.memberList}>
-          {list.map(m => {
-            const done = reviewedIds.has(m.id)
-            return (
-              <div key={m.id} className={styles.memberRow}>
-                <div className={styles.memberLeft}>
-                  <div className={styles.memberAvatar}>
-                    {m.profileUrl
-                      ? <img src={m.profileUrl} alt={m.nickname} />
-                      : <span>{m.nickname.charAt(0)}</span>
-                    }
-                  </div>
-                  <div>
-                    <p className={styles.memberName}>{m.nickname}</p>
-                    <TempBadge value={m.temperature} />
-                  </div>
+      <h2>함께한 멤버 ({list.length})</h2>
+      <p className={styles.reviewHint}>
+        멤버 카드를 클릭하면 다른 멤버들이 남긴 익명 리뷰를 볼 수 있어요.
+        {canWriteReview && ' 프로필 사진을 클릭하면 해당 멤버의 페이지로 이동합니다.'}
+      </p>
+      <div className={styles.memberGrid}>
+        {list.map(m => {
+          const done = reviewedIds.has(m.id)
+          return (
+            <button
+              key={m.id}
+              type="button"
+              className={styles.memberCard}
+              onClick={() => setViewing(m)}
+            >
+              <Link
+                to={`/users/${m.id}`}
+                className={styles.memberAvatarLink}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`${m.nickname} 프로필로 이동`}
+              >
+                <div className={styles.memberAvatar}>
+                  {m.profileUrl
+                    ? <img src={m.profileUrl} alt={m.nickname} />
+                    : <span>{m.nickname.charAt(0)}</span>
+                  }
                 </div>
-                {done ? (
+              </Link>
+              <div className={styles.memberMeta}>
+                <p className={styles.memberName}>{m.nickname}</p>
+                <TempBadge value={m.temperature} />
+              </div>
+              {canWriteReview && (
+                done ? (
                   <span className={styles.reviewDone}>✓ 리뷰 완료</span>
                 ) : (
-                  <Button size="sm" onClick={() => setTarget(m)}>리뷰 작성</Button>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                  <Button
+                    size="sm"
+                    onClick={(e: any) => { e.stopPropagation(); setTarget(m) }}
+                  >
+                    리뷰 작성
+                  </Button>
+                )
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {viewing && (
+        <MemberReviewsModal
+          postId={post.id}
+          postTitle={post.title}
+          member={viewing}
+          onClose={() => setViewing(null)}
+        />
       )}
 
       {target && (
@@ -344,6 +370,7 @@ function ReviewSection({ post }: { post: Post }) {
           onSuccess={() => {
             setTarget(null)
             qc.invalidateQueries({ queryKey: ['my-reviews', post.id] })
+            qc.invalidateQueries({ queryKey: ['reviews-for-target', post.id, target.id] })
             qc.invalidateQueries({ queryKey: ['review-summary', target.id] })
             qc.invalidateQueries({ queryKey: ['user', target.id] })
           }}
