@@ -39,6 +39,9 @@ supabase/seed_demo_users.sql
 .vite
 .cache
 
+# Script checkpoints (재태깅 등 백필 스크립트 진행 상태)
+scripts/.retag-checkpoint.json
+
 # Test/coverage
 coverage
 

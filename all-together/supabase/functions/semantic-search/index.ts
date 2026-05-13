@@ -41,19 +41,33 @@ Deno.serve(async (req) => {
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const client = createClient(supabaseUrl, serviceKey)
 
+    const requestedLimit = body.limit ?? 12
+    const explicitCategory = body.category
+    // 카테고리 명시 안 했으면 COMMUNITY 글까지 가져온 뒤 후처리로 제외해야 하므로
+    // 여유분(2배) 미리 받아옴
+    const fetchCount = explicitCategory ? requestedLimit : requestedLimit * 2
+
     const { data, error } = await client.rpc('match_posts', {
       query_embedding: vector,
-      match_count: body.limit ?? 12,
-      match_threshold: body.threshold ?? 0.0,
-      filter_category: body.category ?? null,
+      match_count: fetchCount,
+      match_threshold: body.threshold ?? 0.65,  // 한국어 임베딩 베이스라인 컷 (엄격)
+      filter_category: explicitCategory ?? null,
       filter_status: body.status ?? null,
       filter_sub_category: body.subCategory ?? null,
     })
     if (error) throw error
 
+    // 2-1) 사용자가 카테고리 명시하지 않았으면 자유게시판(COMMUNITY) 자동 제외
+    //      → 검색은 기본적으로 모집 공고 대상. COMMUNITY 검색은 명시 선택 시에만.
+    let filtered: any[] = data ?? []
+    if (!explicitCategory) {
+      filtered = filtered.filter((p) => p.category !== 'COMMUNITY')
+    }
+    filtered = filtered.slice(0, requestedLimit)
+
     // 3) 작성자/태그까지 같이 보내기 — 추가 조회
-    const postIds = (data ?? []).map((p: any) => p.id)
-    let augmented = data ?? []
+    const postIds = filtered.map((p: any) => p.id)
+    let augmented: any[] = filtered
     if (postIds.length > 0) {
       const { data: details } = await client
         .from('posts')
@@ -67,7 +81,7 @@ Deno.serve(async (req) => {
       const detailMap = new Map(
         (details ?? []).map((d: any) => [d.id, d]),
       )
-      augmented = (data ?? []).map((p: any) => {
+      augmented = filtered.map((p: any) => {
         const det: any = detailMap.get(p.id)
         return {
           ...p,

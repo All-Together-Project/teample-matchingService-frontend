@@ -39,11 +39,11 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await userClient.auth.getUser()
     if (userErr || !user) return jsonResponse({ error: 'unauthorized' }, 401)
 
-    // 2) 게시글 조회 (작성자 본인 검증) — service role
+    // 2) 게시글 조회 (작성자 본인 검증 + sub_category, 태그까지) — service role
     const adminClient = createClient(supabaseUrl, serviceKey)
     const { data: post, error: postErr } = await adminClient
       .from('posts')
-      .select('id, title, content, author_id')
+      .select('id, title, content, category, sub_category, author_id, post_tags(tag:tags(name))')
       .eq('id', postId)
       .single()
     if (postErr || !post) return jsonResponse({ error: 'post not found' }, 404)
@@ -51,10 +51,20 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'forbidden — only author can embed' }, 403)
     }
 
-    // 3) 임베딩할 텍스트 결정 (요청 body 우선, 없으면 title + content)
+    // 3) 임베딩할 텍스트 결정 (요청 body 우선, 없으면 title + 카테고리 + 태그 + content)
+    //    sub_category 와 tags 를 같이 넣어야 boilerplate content 의 변별력이 살아남.
+    const tagNames = ((post.post_tags ?? []) as any[])
+      .map((pt: any) => pt?.tag?.name)
+      .filter(Boolean)
+      .join(', ')
     const sourceText = (text && text.trim().length > 0)
       ? text.trim()
-      : `${post.title}\n\n${post.content ?? ''}`.trim()
+      : [
+          `[제목] ${post.title}`,
+          `[카테고리] ${post.category}${post.sub_category ? ' / ' + post.sub_category : ''}`,
+          tagNames ? `[태그] ${tagNames}` : null,
+          `[본문] ${post.content ?? ''}`,
+        ].filter(Boolean).join('\n').trim()
 
     // 4) Gemini 임베딩
     const vector = await embedText(sourceText, 'RETRIEVAL_DOCUMENT')
