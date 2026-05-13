@@ -107,21 +107,19 @@ export default function Header() {
                   <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                 </svg>
               </Link>
-              <div className={styles.avatarWrap}>
-                <Link to="/my" className={styles.avatar} title="마이페이지">
-                  {user?.profileUrl
-                    ? <img src={user.profileUrl} alt={user.nickname} />
-                    : <span>{user?.nickname?.charAt(0)}</span>
-                  }
-                </Link>
-                <button
-                  type="button"
-                  className={styles.miniLogoutBtn}
-                  onClick={handleLogout}
-                >
-                  로그아웃
-                </button>
-              </div>
+              <Link to="/my" className={styles.avatar} title="마이페이지">
+                {user?.profileUrl
+                  ? <img src={user.profileUrl} alt={user.nickname} />
+                  : <span>{user?.nickname?.charAt(0)}</span>
+                }
+              </Link>
+              <button
+                type="button"
+                className={styles.miniLogoutBtn}
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
             </>
           ) : (
             <Link to="/login" className={styles.loginBtn}>로그인</Link>
