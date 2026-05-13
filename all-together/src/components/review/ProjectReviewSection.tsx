@@ -167,7 +167,7 @@ export default function ProjectReviewSection({ post }: Props) {
       </div>
 
       {detail && (
-        <ReviewDetailModal review={detail} onClose={() => setDetail(null)} />
+        <ReviewDetailModal review={detail} onClose={() => setDetail(null)} anonymize={false} />
       )}
 
       {showModal && (
