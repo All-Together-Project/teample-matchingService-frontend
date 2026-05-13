@@ -48,7 +48,7 @@ export default function MyPage() {
   const [projectPage,  setProjectPage]  = useState(0)
   const [personalPage, setPersonalPage] = useState(0)
   const [leaderPage,   setLeaderPage]   = useState(0)
-  const [reviewDetail, setReviewDetail] = useState<ReviewDetailItem | null>(null)
+  const [reviewDetail, setReviewDetail] = useState<{ data: ReviewDetailItem; anonymize: boolean } | null>(null)
 
   // 서브탭 변경 시 해당 페이지 리셋
   useEffect(() => { setProjectPage(0) }, [projectSubTab])
@@ -317,7 +317,11 @@ export default function MyPage() {
                 <>
                   <div className={styles.compactReviewList}>
                     {sliceFor(reviews, personalPage, REVIEWS_PER_PAGE).map(r => (
-                      <CompactPersonalReviewCard key={r.id} review={r} onClick={() => setReviewDetail(r)} />
+                      <CompactPersonalReviewCard
+                        key={r.id}
+                        review={r}
+                        onClick={() => setReviewDetail({ data: r, anonymize: true })}
+                      />
                     ))}
                   </div>
                   <Pagination
@@ -360,7 +364,11 @@ export default function MyPage() {
                 <>
                   <div className={styles.compactReviewList}>
                     {sliceFor(leaderReviews, leaderPage, REVIEWS_PER_PAGE).map(r => (
-                      <CompactLeaderReviewCard key={r.id} review={r} onClick={() => setReviewDetail(r)} />
+                      <CompactLeaderReviewCard
+                        key={r.id}
+                        review={r}
+                        onClick={() => setReviewDetail({ data: r, anonymize: false })}
+                      />
                     ))}
                   </div>
                   <Pagination
@@ -377,7 +385,11 @@ export default function MyPage() {
       )}
 
       {reviewDetail && (
-        <ReviewDetailModal review={reviewDetail} onClose={() => setReviewDetail(null)} />
+        <ReviewDetailModal
+          review={reviewDetail.data}
+          anonymize={reviewDetail.anonymize}
+          onClose={() => setReviewDetail(null)}
+        />
       )}
     </div>
   )
