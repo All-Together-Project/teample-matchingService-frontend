@@ -10,6 +10,8 @@ import { TempBadge, StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
 import Pagination from '@/components/common/Pagination'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import ReviewCategoryBreakdown from '@/components/review/ReviewCategoryBreakdown'
+import ReviewCategoryTabs, { type ReviewCategoryFilter } from '@/components/review/ReviewCategoryTabs'
 import ReviewDetailModal, { type ReviewDetailItem } from '@/components/review/ReviewDetailModal'
 import MyApplications from '@/components/matching/MyApplications'
 import ReceivedApplications from '@/components/matching/ReceivedApplications'
@@ -49,6 +51,8 @@ export default function MyPage() {
   const [personalPage, setPersonalPage] = useState(0)
   const [leaderPage,   setLeaderPage]   = useState(0)
   const [reviewDetail, setReviewDetail] = useState<{ data: ReviewDetailItem; anonymize: boolean } | null>(null)
+  const [personalFilter, setPersonalFilter] = useState<ReviewCategoryFilter>('ALL')
+  const [leaderFilter, setLeaderFilter] = useState<ReviewCategoryFilter>('ALL')
 
   // 서브탭 변경 시 해당 페이지 리셋
   useEffect(() => { setProjectPage(0) }, [projectSubTab])
@@ -309,27 +313,48 @@ export default function MyPage() {
               {reviewSummary && reviewSummary.totalReviews > 0 && (
                 <ReviewSummaryCard summary={reviewSummary} />
               )}
+              {reviews && reviews.length > 0 && <ReviewCategoryBreakdown reviews={reviews} />}
               {!reviews ? (
                 <p className={styles.empty}>불러오는 중...</p>
               ) : reviews.length === 0 ? (
                 <p className={styles.empty}>아직 받은 개인 리뷰가 없습니다.</p>
               ) : (
                 <>
-                  <div className={styles.compactReviewList}>
-                    {sliceFor(reviews, personalPage, REVIEWS_PER_PAGE).map(r => (
-                      <CompactPersonalReviewCard
-                        key={r.id}
-                        review={r}
-                        onClick={() => setReviewDetail({ data: r, anonymize: true })}
-                      />
-                    ))}
-                  </div>
-                  <Pagination
-                    page={personalPage}
-                    size={REVIEWS_PER_PAGE}
-                    total={reviews.length}
-                    onChange={setPersonalPage}
+                  <ReviewCategoryTabs
+                    value={personalFilter}
+                    counts={{
+                      ALL:     reviews.length,
+                      STUDY:   reviews.filter(r => r.postCategory === 'STUDY').length,
+                      PROJECT: reviews.filter(r => r.postCategory === 'PROJECT').length,
+                      MEETUP:  reviews.filter(r => r.postCategory === 'MEETUP').length,
+                    }}
+                    onChange={(v) => { setPersonalFilter(v); setPersonalPage(0) }}
                   />
+                  {(() => {
+                    const filtered = reviews.filter(r => personalFilter === 'ALL' || r.postCategory === personalFilter)
+                    if (filtered.length === 0) {
+                      return <p className={styles.empty}>이 카테고리의 리뷰가 없습니다.</p>
+                    }
+                    return (
+                      <>
+                        <div className={styles.compactReviewList}>
+                          {sliceFor(filtered, personalPage, REVIEWS_PER_PAGE).map(r => (
+                            <CompactPersonalReviewCard
+                              key={r.id}
+                              review={r}
+                              onClick={() => setReviewDetail({ data: r, anonymize: true })}
+                            />
+                          ))}
+                        </div>
+                        <Pagination
+                          page={personalPage}
+                          size={REVIEWS_PER_PAGE}
+                          total={filtered.length}
+                          onChange={setPersonalPage}
+                        />
+                      </>
+                    )
+                  })()}
                 </>
               )}
             </>
@@ -362,21 +387,41 @@ export default function MyPage() {
                 <p className={styles.empty}>아직 리더 프로젝트 리뷰가 없습니다.</p>
               ) : (
                 <>
-                  <div className={styles.compactReviewList}>
-                    {sliceFor(leaderReviews, leaderPage, REVIEWS_PER_PAGE).map(r => (
-                      <CompactLeaderReviewCard
-                        key={r.id}
-                        review={r}
-                        onClick={() => setReviewDetail({ data: r, anonymize: false })}
-                      />
-                    ))}
-                  </div>
-                  <Pagination
-                    page={leaderPage}
-                    size={REVIEWS_PER_PAGE}
-                    total={leaderReviews.length}
-                    onChange={setLeaderPage}
+                  <ReviewCategoryTabs
+                    value={leaderFilter}
+                    counts={{
+                      ALL:     leaderReviews.length,
+                      STUDY:   leaderReviews.filter(r => r.postCategory === 'STUDY').length,
+                      PROJECT: leaderReviews.filter(r => r.postCategory === 'PROJECT').length,
+                      MEETUP:  leaderReviews.filter(r => r.postCategory === 'MEETUP').length,
+                    }}
+                    onChange={(v) => { setLeaderFilter(v); setLeaderPage(0) }}
                   />
+                  {(() => {
+                    const filteredLeader = leaderReviews.filter(r => leaderFilter === 'ALL' || r.postCategory === leaderFilter)
+                    if (filteredLeader.length === 0) {
+                      return <p className={styles.empty}>이 카테고리의 리뷰가 없습니다.</p>
+                    }
+                    return (
+                      <>
+                        <div className={styles.compactReviewList}>
+                          {sliceFor(filteredLeader, leaderPage, REVIEWS_PER_PAGE).map(r => (
+                            <CompactLeaderReviewCard
+                              key={r.id}
+                              review={r}
+                              onClick={() => setReviewDetail({ data: r, anonymize: false })}
+                            />
+                          ))}
+                        </div>
+                        <Pagination
+                          page={leaderPage}
+                          size={REVIEWS_PER_PAGE}
+                          total={filteredLeader.length}
+                          onChange={setLeaderPage}
+                        />
+                      </>
+                    )
+                  })()}
                 </>
               )}
             </>

@@ -4,6 +4,8 @@ import { userApi, reviewApi, messageApi, projectReviewApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 import { TempBadge } from '@/components/common/Badge'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import ReviewCategoryBreakdown from '@/components/review/ReviewCategoryBreakdown'
+import ReviewCategoryTabs, { type ReviewCategoryFilter } from '@/components/review/ReviewCategoryTabs'
 import ReviewDetailModal from '@/components/review/ReviewDetailModal'
 import Button from '@/components/common/Button'
 import { useState } from 'react'
@@ -17,6 +19,7 @@ export default function UserProfilePage() {
   const [msgContent, setMsgContent] = useState('')
   const [msgSent, setMsgSent] = useState(false)
   const [reviewDetail, setReviewDetail] = useState<Review | null>(null)
+  const [reviewFilter, setReviewFilter] = useState<ReviewCategoryFilter>('ALL')
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user', userId],
@@ -118,10 +121,23 @@ export default function UserProfilePage() {
           )}
 
           {summary && <ReviewSummaryCard summary={summary} />}
+          {reviews && reviews.length > 0 && <ReviewCategoryBreakdown reviews={reviews} />}
 
           <div className={styles.section}>
             <h2>받은 리뷰 ({reviews?.length ?? 0})</h2>
-            {reviews?.map(r => {
+            {reviews && reviews.length > 0 && (
+              <ReviewCategoryTabs
+                value={reviewFilter}
+                counts={{
+                  ALL:     reviews.length,
+                  STUDY:   reviews.filter(r => r.postCategory === 'STUDY').length,
+                  PROJECT: reviews.filter(r => r.postCategory === 'PROJECT').length,
+                  MEETUP:  reviews.filter(r => r.postCategory === 'MEETUP').length,
+                }}
+                onChange={setReviewFilter}
+              />
+            )}
+            {reviews?.filter(r => reviewFilter === 'ALL' || r.postCategory === reviewFilter).map(r => {
               const isMine = me?.id === r.evaluator.id
               const showAsAnon = !isMine
               const name = showAsAnon ? '함께한 멤버' : r.evaluator.nickname
