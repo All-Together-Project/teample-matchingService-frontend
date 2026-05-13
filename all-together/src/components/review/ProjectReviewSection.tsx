@@ -7,6 +7,7 @@ import type { Post } from '@/types'
 import Button from '@/components/common/Button'
 import { TempBadge } from '@/components/common/Badge'
 import ProjectReviewModal from './ProjectReviewModal'
+import ReviewDetailModal, { type ReviewDetailItem } from './ReviewDetailModal'
 import styles from './ProjectReviewSection.module.css'
 
 interface Props {
@@ -23,6 +24,7 @@ export default function ProjectReviewSection({ post }: Props) {
   const { user } = useAuthStore()
   const qc = useQueryClient()
   const [showModal, setShowModal] = useState(false)
+  const [detail, setDetail] = useState<ReviewDetailItem | null>(null)
 
   if (post.category === 'COMMUNITY') return null
   const category = post.category as 'STUDY' | 'PROJECT' | 'MEETUP'
@@ -112,7 +114,19 @@ export default function ProjectReviewSection({ post }: Props) {
           </p>
         ) : (
           reviews.map(r => (
-            <div key={r.id} className={styles.reviewCard}>
+            <button
+              type="button"
+              key={r.id}
+              className={styles.reviewCard}
+              onClick={() => setDetail({
+                id: r.id,
+                evaluator: { id: r.evaluator.id, nickname: r.evaluator.nickname },
+                postTitle: `${CATEGORY_LABEL[category]} 리뷰`,
+                comment: r.comment ?? '',
+                scores: r.scores.map(s => ({ itemId: s.itemId, itemName: s.itemName, score: s.score })),
+                createdAt: r.createdAt,
+              })}
+            >
               <div className={styles.reviewHeader}>
                 <div className={styles.reviewerAvatar}>
                   {r.evaluator.profileUrl
@@ -147,10 +161,14 @@ export default function ProjectReviewSection({ post }: Props) {
               </div>
 
               {r.comment && <p className={styles.reviewComment}>"{r.comment}"</p>}
-            </div>
+            </button>
           ))
         )}
       </div>
+
+      {detail && (
+        <ReviewDetailModal review={detail} onClose={() => setDetail(null)} />
+      )}
 
       {showModal && (
         <ProjectReviewModal
