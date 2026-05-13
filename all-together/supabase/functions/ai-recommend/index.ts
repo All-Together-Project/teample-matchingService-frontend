@@ -275,18 +275,78 @@ async function recommendMembers(client: any, prompt: string, post: any) {
 
   if (sorted.length === 0) return { intro: '', results: [] }
 
-  // 5) 각 사용자 태그
+  // 5) 각 사용자 태그 + FINISHED 활동 수 + 리뷰 요약을 병렬로 조회
   const userIds = sorted.map((c) => c.user.id)
-  const { data: userTagRows2 } = await client
-    .from('user_tags')
-    .select(`user_id, tag:tags(id, name, category)`)
-    .in('user_id', userIds)
+  const [
+    { data: userTagRows2 },
+    { data: pmRows },
+    reviewSummaries,
+  ] = await Promise.all([
+    client
+      .from('user_tags')
+      .select(`user_id, tag:tags(id, name, category)`)
+      .in('user_id', userIds),
+    // 멤버로 참여한 STUDY/PROJECT/MEETUP 게시글 중 FINISHED — 제목/내용까지 가져와서
+    // Gemini가 활동의 도메인 관련성도 판단하도록.
+    client
+      .from('post_members')
+      .select('user_id, post:posts!inner(id, status, category, sub_category, title, content, created_at, author_id)')
+      .in('user_id', userIds)
+      .eq('post.status', 'FINISHED')
+      .in('post.category', ['STUDY', 'PROJECT', 'MEETUP']),
+    Promise.all(
+      userIds.map(async (uid: string) => {
+        const { data } = await client.rpc('review_summary_for_user', { p_user_id: uid })
+        return { uid, summary: data }
+      }),
+    ),
+  ])
+
   const tagByUser = new Map<string, any[]>()
   for (const row of (userTagRows2 ?? []) as any[]) {
     if (!row.tag) continue
     const arr = tagByUser.get(row.user_id) ?? []
     arr.push(row.tag)
     tagByUser.set(row.user_id, arr)
+  }
+
+  const pastActivitiesByUser = new Map<string, Array<{
+    category: string
+    subCategory: string
+    title: string
+    contentSnippet: string
+    role: 'leader' | 'member'
+    createdAt: string
+  }>>()
+  for (const row of (pmRows ?? []) as any[]) {
+    const p = row.post
+    if (!p) continue
+    const arr = pastActivitiesByUser.get(row.user_id) ?? []
+    arr.push({
+      category: p.category,
+      subCategory: p.sub_category,
+      title: p.title,
+      contentSnippet: (p.content ?? '').slice(0, 120),
+      role: p.author_id === row.user_id ? 'leader' : 'member',
+      createdAt: p.created_at,
+    })
+    pastActivitiesByUser.set(row.user_id, arr)
+  }
+  // 최신 순으로 정렬 + 후보당 상위 4개만 사용 (프롬프트 길이 제한)
+  for (const [uid, arr] of pastActivitiesByUser.entries()) {
+    arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    pastActivitiesByUser.set(uid, arr.slice(0, 4))
+  }
+  // 멤버 참여 카운트 (운영자 경험은 별도 명시되니 멤버 참여만 카운트)
+  const finishedByUser = new Map<string, number>()
+  for (const row of (pmRows ?? []) as any[]) {
+    if (row.post?.author_id === row.user_id) continue
+    finishedByUser.set(row.user_id, (finishedByUser.get(row.user_id) ?? 0) + 1)
+  }
+
+  const reviewByUser = new Map<string, any>()
+  for (const r of (reviewSummaries ?? []) as any[]) {
+    if (r.summary) reviewByUser.set(r.uid, r.summary)
   }
 
   // 6) AI 분석 (인트로 + 풍부한 이유)
@@ -296,6 +356,9 @@ async function recommendMembers(client: any, prompt: string, post: any) {
     temperature: c.user.temperature,
     tagOverlap: c.overlap,
     tags: (tagByUser.get(c.user.id) ?? []).map((t: any) => t.name),
+    finishedActivities: finishedByUser.get(c.user.id) ?? 0,
+    pastActivities: pastActivitiesByUser.get(c.user.id) ?? [],
+    reviewSummary: reviewByUser.get(c.user.id) ?? null,
   })))
 
   const results = sorted.map((c, i) => ({
@@ -321,9 +384,45 @@ async function generateMemberAnalysis(
     temperature: number | null
     tagOverlap: number
     tags: string[]
+    finishedActivities: number
+    pastActivities: Array<{
+      category: string
+      subCategory: string
+      title: string
+      contentSnippet: string
+      role: 'leader' | 'member'
+      createdAt: string
+    }>
+    reviewSummary: {
+      totalReviews: number
+      averageOverall: number
+      itemAverages: Array<{ itemName: string; average: number }>
+    } | null
   }[],
 ): Promise<{ intro: string; reasons: string[] }> {
   if (candidates.length === 0) return { intro: '', reasons: [] }
+
+  const fmtReview = (rs: typeof candidates[number]['reviewSummary']): string => {
+    if (!rs || rs.totalReviews === 0) return '받은 리뷰 없음 (신규 또는 활동 적음)'
+    const items = (rs.itemAverages ?? [])
+      .slice()
+      .sort((a, b) => b.average - a.average)
+      .slice(0, 5)
+      .map((it) => `${it.itemName} ${it.average.toFixed(1)}`)
+      .join(', ')
+    return `리뷰 ${rs.totalReviews}건, 평균 ★${rs.averageOverall.toFixed(1)} ` +
+           `(상위 항목: ${items || '항목 정보 없음'})`
+  }
+
+  const fmtPast = (acts: typeof candidates[number]['pastActivities']): string => {
+    if (acts.length === 0) return '   과거 FINISHED 활동: 없음 (신규)'
+    return acts
+      .map((a, j) =>
+        `   ${j + 1}) [${a.category}/${a.subCategory}] ${a.role === 'leader' ? '🛠️운영' : '👥참여'} "${a.title}"\n` +
+        `      └ ${a.contentSnippet || '(본문 없음)'}`,
+      )
+      .join('\n')
+  }
 
   const numbered = candidates
     .map((c, i) =>
@@ -332,7 +431,11 @@ async function generateMemberAnalysis(
       `   매너온도: ${c.temperature ?? 36.5}°C ` +
         `(${interpretTemperature(c.temperature ?? 36.5)})\n` +
       `   태그: ${c.tags.length > 0 ? c.tags.join(', ') : '없음'}\n` +
-      `   게시글 태그와 겹치는 개수: ${c.tagOverlap}개`,
+      `   게시글 태그와 겹치는 개수: ${c.tagOverlap}개\n` +
+      `   ${fmtReview(c.reviewSummary)}\n` +
+      `   FINISHED 멤버 참여: ${c.finishedActivities}건\n` +
+      `   과거 활동 상세 (최신 ${c.pastActivities.length}개):\n` +
+      fmtPast(c.pastActivities),
     )
     .join('\n\n')
 
@@ -362,6 +465,17 @@ ${numbered}
 - 후보 정보에 없는 사실을 만들어내지 말 것 (예: 경력 연차, 특정 회사 등)
 - 매너온도 36.5°C(기본값)인 후보는 "신규 사용자"로 부드럽게 언급, 단점으로 강조하지 말 것
 - 태그 겹침이 0인 후보는 다른 강점(자기소개·매너온도)으로 추천 이유를 풀 것
+- **리더가 프롬프트에서 언급한 자질**(예: "프로젝트 경험", "시간 약속", "열정", "소통" 등)은
+  반드시 후보의 "과거 활동 상세"·"FINISHED 참여" 수·"받은 리뷰" 항목 점수를 근거로 매칭 평가할 것:
+  - "프로젝트 경험"이 강조되면 FINISHED 참여 수와 과거 활동의 **제목·내용 도메인이 현재 프로젝트와 얼마나 관련 있는지**까지
+    구체적으로 인용. 예: "이전에 'React 토이프로젝트'에 멤버로 참여한 이력이 있어 본 React 프로젝트와 직접 연결됨"
+  - "시간 약속 잘 지키는"이 강조되면 리뷰 항목 중 "시간 약속" 평균이 높은 후보 우선
+  - "열정"이 강조되면 리뷰 항목 중 "열정" / "참여도" / "재참여 의향" 평균이 높은 후보 우선
+  - 0건이거나 데이터 없는 후보는 솔직하게 "리뷰 데이터가 없어 검증은 어렵지만 자기소개에서 ..." 형태로
+- 과거 활동을 인용할 때는 제목을 그대로 짧게 따와서(따옴표 안에) 구체성 유지.
+  예: "이전에 '데이터 분석 토이 프로젝트'에서 팀원으로 참여한 경험이 있는 분"
+- 인트로 멘트도 리더가 강조한 자질을 어떻게 반영해 정렬했는지 명시
+  (예: "관련 도메인의 FINISHED 참여 이력이 있고 '시간 약속' 평균이 높은 분들 위주로 골랐어요")
 
 JSON으로만 응답:
 {
