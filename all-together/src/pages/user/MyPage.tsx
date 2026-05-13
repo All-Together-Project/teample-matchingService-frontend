@@ -10,6 +10,7 @@ import { TempBadge, StatusBadge } from '@/components/common/Badge'
 import TagChip from '@/components/common/TagChip'
 import Pagination from '@/components/common/Pagination'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import ReviewCategoryBreakdown from '@/components/review/ReviewCategoryBreakdown'
 import ReviewDetailModal, { type ReviewDetailItem } from '@/components/review/ReviewDetailModal'
 import MyApplications from '@/components/matching/MyApplications'
 import ReceivedApplications from '@/components/matching/ReceivedApplications'
@@ -309,6 +310,7 @@ export default function MyPage() {
               {reviewSummary && reviewSummary.totalReviews > 0 && (
                 <ReviewSummaryCard summary={reviewSummary} />
               )}
+              {reviews && reviews.length > 0 && <ReviewCategoryBreakdown reviews={reviews} />}
               {!reviews ? (
                 <p className={styles.empty}>불러오는 중...</p>
               ) : reviews.length === 0 ? (

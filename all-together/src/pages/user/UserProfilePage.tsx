@@ -4,6 +4,7 @@ import { userApi, reviewApi, messageApi, projectReviewApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 import { TempBadge } from '@/components/common/Badge'
 import ReviewSummaryCard from '@/components/review/ReviewSummaryCard'
+import ReviewCategoryBreakdown from '@/components/review/ReviewCategoryBreakdown'
 import ReviewDetailModal from '@/components/review/ReviewDetailModal'
 import Button from '@/components/common/Button'
 import { useState } from 'react'
@@ -118,6 +119,7 @@ export default function UserProfilePage() {
           )}
 
           {summary && <ReviewSummaryCard summary={summary} />}
+          {reviews && reviews.length > 0 && <ReviewCategoryBreakdown reviews={reviews} />}
 
           <div className={styles.section}>
             <h2>받은 리뷰 ({reviews?.length ?? 0})</h2>
