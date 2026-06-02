@@ -17,6 +17,7 @@ export default function HelpChatbot() {
   const [messages, setMessages] = useState<Message[]>([INTRO])
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
   const ask = useMutation({
     mutationFn: (msg: string) =>
@@ -47,6 +48,14 @@ export default function HelpChatbot() {
   useEffect(() => {
     if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, open, ask.isPending])
+
+  // textarea 자동 높이 조절 — 약 3줄까지 늘어나고 그 이상은 스크롤
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 84) + 'px'
+  }, [input, open])
 
   const send = () => {
     const text = input.trim()
@@ -115,14 +124,21 @@ export default function HelpChatbot() {
               send()
             }}
           >
-            <input
-              type="text"
+            <textarea
+              ref={inputRef}
               className={styles.input}
-              placeholder="궁금한 점을 입력해 주세요"
+              placeholder="궁금한 점을 입력해 주세요 (Shift+Enter 줄바꿈)"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
               disabled={ask.isPending}
-              maxLength={500}
+              maxLength={1000}
+              rows={1}
             />
             <button
               type="submit"

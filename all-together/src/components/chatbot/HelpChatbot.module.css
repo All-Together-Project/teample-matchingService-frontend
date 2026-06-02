@@ -149,7 +149,7 @@
 
 .inputRow {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid var(--color-border);
@@ -158,14 +158,19 @@
 
 .input {
   flex: 1;
-  padding: 10px 12px;
+  min-height: 38px;
+  max-height: 84px;       /* 약 3줄 — 이후 스크롤 */
+  padding: 9px 12px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   font-family: inherit;
   font-size: 13px;
+  line-height: 1.4;
   color: var(--color-text-primary);
   background: var(--color-bg);
   outline: none;
+  resize: none;
+  overflow-y: auto;
   transition: border-color 0.12s, background 0.12s;
 }
 .input:focus { border-color: var(--color-primary); background: var(--color-surface); }

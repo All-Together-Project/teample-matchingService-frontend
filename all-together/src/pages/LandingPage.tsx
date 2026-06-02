@@ -63,12 +63,12 @@ export default function LandingPage() {
     queryFn: () => tagApi.getAll(),
   })
 
-  // 실시간 검색어 — 최근 1시간 윈도우, 1시간마다 자동 갱신
+  // 실시간 검색어 — 매일 자정 초기화, 그 동안은 라이브 순위 변동
   const { data: trending } = useQuery({
-    queryKey: ['search', 'trending', '1h'],
-    queryFn: () => searchApi.getTrending(10, 1),
-    staleTime: 60 * 60 * 1000,        // 1시간 캐시
-    refetchInterval: 60 * 60 * 1000,  // 1시간마다 자동 재요청
+    queryKey: ['search', 'trending', 'daily'],
+    queryFn: () => searchApi.getTrending(10),
+    staleTime: 60 * 1000,             // 1분 캐시
+    refetchInterval: 60 * 1000,       // 1분마다 순위 재계산
     refetchIntervalInBackground: true,
   })
 
@@ -199,11 +199,11 @@ export default function LandingPage() {
         <div className={styles.tagCloud}>
           <h2 className={styles.sectionTitle}>
             🔥 실시간 검색어
-            <span className={styles.sectionHint}>최근 1시간 · 매시간 갱신</span>
+            <span className={styles.sectionHint}>매일 자정 초기화 · 라이브 순위</span>
           </h2>
           <div className={styles.tags}>
             {!trending || trending.length === 0 ? (
-              <span className={styles.empty}>최근 1시간 내 검색 기록이 없습니다.</span>
+              <span className={styles.empty}>오늘 검색 기록이 아직 없습니다.</span>
             ) : (
               trending.map((t, i) => (
                 <Link
