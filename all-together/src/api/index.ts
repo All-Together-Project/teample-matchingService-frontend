@@ -120,11 +120,34 @@ export const searchApi = {
     await supabase.rpc('record_search', { p_term: term })
   },
 
-  // 트렌딩 검색어 — 최근 7일
-  getTrending: async (limit = 10) => {
-    const { data, error } = await supabase.rpc('trending_searches', { p_limit: limit })
+  // 트렌딩 검색어 — 기본 최근 1시간, windowHours로 임의 윈도우 지정 가능 (168 = 7일)
+  getTrending: async (limit = 10, windowHours = 1) => {
+    const { data, error } = await supabase.rpc('trending_searches', {
+      p_limit: limit,
+      p_window_hours: windowHours,
+    })
     if (error) throw error
     return (data ?? []) as { term: string; count: number }[]
+  },
+}
+
+// ─── 도움 챗봇 ──────────────────────────────────────────────────────
+export type ChatTurn = { role: 'user' | 'model'; text: string }
+
+export const chatApi = {
+  ask: async (params: {
+    message: string
+    route?: string
+    history?: ChatTurn[]
+  }): Promise<{ reply: string }> => {
+    const { data, error } = await supabase.functions.invoke('chat-helper', {
+      body: params,
+    })
+    if (error) throw error
+    if (!data || typeof data.reply !== 'string') {
+      throw new Error('챗봇 응답이 비어있습니다.')
+    }
+    return data as { reply: string }
   },
 }
 

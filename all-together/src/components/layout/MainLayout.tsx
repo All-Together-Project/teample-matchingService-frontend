@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import Header from './Header'
+import HelpChatbot from '@/components/chatbot/HelpChatbot'
 import styles from './MainLayout.module.css'
 
 export default function MainLayout() {
@@ -11,6 +12,7 @@ export default function MainLayout() {
           <Outlet />
         </div>
       </main>
+      <HelpChatbot />
     </div>
   )
 }
