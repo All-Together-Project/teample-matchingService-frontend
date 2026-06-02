@@ -1,17 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
-import { authApi, postApi } from '@/api'
-import type { PostCategory } from '@/types'
+import { authApi } from '@/api'
 import styles from './Header.module.css'
-
-const PATH_TO_CATEGORY: Record<string, PostCategory> = {
-  '/study': 'STUDY',
-  '/project': 'PROJECT',
-  '/meetup': 'MEETUP',
-  '/community': 'COMMUNITY',
-}
 
 const MENU_ITEMS = [
   {
@@ -127,7 +118,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* 메가 메뉴 드롭다운 */}
+      {/* 메가 메뉴 드롭다운 (하위 카테고리만) */}
       {openMenu && (
         <div className={styles.megaMenu} onMouseLeave={() => setOpenMenu(null)}>
           <div className={`container ${styles.megaInner}`}>
@@ -147,37 +138,9 @@ export default function Header() {
                 </Link>
               ))}
             </div>
-            <MegaMenuPreview categoryPath={openMenu} />
           </div>
         </div>
       )}
     </header>
   )
 }
-
-function MegaMenuPreview({ categoryPath }: { categoryPath: string }) {
-  const category = PATH_TO_CATEGORY[categoryPath]
-  const { data, isLoading } = useQuery({
-    queryKey: ['mega-preview', category],
-    queryFn: () => postApi.getList({ category, status: 'RECRUITING', size: 4 }),
-    enabled: !!category,
-    staleTime: 60_000,
-  })
-
-  const posts = data?.content ?? []
-
-  return (
-    <div className={styles.megaPreview}>
-      <h4 className={styles.previewTitle}>모집중 게시글</h4>
-      {isLoading && <p className={styles.previewEmpty}>불러오는 중...</p>}
-      {!isLoading && posts.length === 0 && <p className={styles.previewEmpty}>모집중인 게시글이 없습니다.</p>}
-      {posts.map(p => (
-        <Link key={p.id} to={`/posts/${p.id}`} className={styles.previewItem}>
-          <span className={styles.previewSub}>{p.subCategory}</span>
-          <p className={styles.previewItemTitle}>{p.title}</p>
-        </Link>
-      ))}
-    </div>
-  )
-}
-

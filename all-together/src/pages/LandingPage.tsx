@@ -63,11 +63,13 @@ export default function LandingPage() {
     queryFn: () => tagApi.getAll(),
   })
 
+  // 실시간 검색어 — 최근 1시간 윈도우, 1시간마다 자동 갱신
   const { data: trending } = useQuery({
-    queryKey: ['search', 'trending'],
-    queryFn: () => searchApi.getTrending(10),
-    staleTime: 30 * 60 * 1000,        // 30분 동안은 캐시 유효
-    refetchInterval: 30 * 60 * 1000,  // 30분마다 자동 갱신
+    queryKey: ['search', 'trending', '1h'],
+    queryFn: () => searchApi.getTrending(10, 1),
+    staleTime: 60 * 60 * 1000,        // 1시간 캐시
+    refetchInterval: 60 * 60 * 1000,  // 1시간마다 자동 재요청
+    refetchIntervalInBackground: true,
   })
 
   const handleSearch = (e: React.FormEvent) => {
@@ -195,10 +197,13 @@ export default function LandingPage() {
           </div>
         </div>
         <div className={styles.tagCloud}>
-          <h2 className={styles.sectionTitle}>🔥 실시간 검색어</h2>
+          <h2 className={styles.sectionTitle}>
+            🔥 실시간 검색어
+            <span className={styles.sectionHint}>최근 1시간 · 매시간 갱신</span>
+          </h2>
           <div className={styles.tags}>
             {!trending || trending.length === 0 ? (
-              <span className={styles.empty}>아직 검색 기록이 없습니다.</span>
+              <span className={styles.empty}>최근 1시간 내 검색 기록이 없습니다.</span>
             ) : (
               trending.map((t, i) => (
                 <Link
